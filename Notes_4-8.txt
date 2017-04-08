@@ -1,0 +1,49 @@
+Each index is a lattice node.
+The lattice space wraps around itself.
+At first, there are 2400 lattice nodes with 800 mice initially.
+Next, they use 32000 nodes and 8000 mice.
+Mice are located in every other node - like a checkerboard.
+Mice move in a random direction (1 of 8); ticks are not immobile.
+Node size is 400 m^2. 
+Ticks are placed in the space in a #-column band at every 4th row.
+
+A mouse moves in a certain direction until it finds an empty nesting site.
+If the mouse cannot find an empty site within a certain number of steps, it dies.
+A mouse can also die of other causes, which are modeled by the random selection of the life span
+for each mouse.
+
+Density of the ticks:
+When a mouse gets bitten, it can have 10 inidivual larval bites or 5 nymphal bites.
+When there is a drop off event, the ticks turn into the next stage and the tick density of the node where 
+they drop off is updated. 
+
+Larva -> Nymph -> Adult
+
+At time 0, there are only nymphs. At time 90, larva enter the simulation.
+
+In several nodes, there are going to be infected ticks. When mice pass through these nodes, they become infected.
+Once ticks drop off, that node becomes infected. 
+
+There are five different classes of ticks:
+- larva
+- uninfected nymphs
+- infected nymphs
+- uninfected adults
+- infected adults
+
+The percentage of the class of tick is the probability that the type of the tick latches onto
+the mouse.
+
+Define Class for Mouse
+
+Mouse
+-int lifespan
+-bool has disease
+-bool carrying
+-carrying type of tick
+
+For deers:
+There are less per node.
+More adults can latch on.
+Only adults can bite.
+They move faster
