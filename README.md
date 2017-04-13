@@ -14,3 +14,16 @@ From this paper, it is clear that improving performance through parallelization 
 
 Link: http://carothersc.github.io/ROSS/
 
+## Command line commands (..):
+
+export PATH=/usr/local/mpich-3.2/bin:$PATH
+
+PPCkima5@kratos:~/ross-build$ cmake -DROSS_BUILD_MODELS=ON -DCMAKE_C_COMPILER=`which mpicc` -DCMAKE_ARCH=x86_64 ../ROSS
+
+mpirun -np 4 ./phold --synch=2  (2 = conservative = mpi barrier at lookahead)
+
+
+## How do we make a 'make' file for our model?
+
+
+
