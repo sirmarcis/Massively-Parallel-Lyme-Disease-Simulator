@@ -22,6 +22,11 @@ PPCkima5@kratos:~/ross-build$ cmake -DROSS_BUILD_MODELS=ON -DCMAKE_C_COMPILER=`w
 
 mpirun -np 4 ./phold --synch=2  (2 = conservative = mpi barrier at lookahead)
 
+## working on kratos
+
+Mark as a point of contact for questions, email: plaggm@rpi.edu
+
+can use clion, with mastiff to connect to kratos
 
 ## How do we make a 'make' file for our model?
 
