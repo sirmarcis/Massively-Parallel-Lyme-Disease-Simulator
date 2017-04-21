@@ -190,14 +190,15 @@ void pthreadCreate() {
 			fprintf( stderr, "pthread_create() failed (%d): %s\n", rc, strerror( rc ));
 			return;
 		}
+	}
 
 	//make main thread have tid = 0
     i=0;
-    t = (thread *) malloc(sizeof(thread));
-    id = (int *) malloc(sizeof(int));
+    thread * t = (thread *) malloc(sizeof(thread));
+    int * id = (int *) malloc(sizeof(int));
     *id = i;
     t->myTID = id;
-    rc = pthread_create( &tid[i], NULL, updateUniverse, t);
+    int rc = pthread_create( &tid[i], NULL, updateUniverse, t);
     if (rc != 0) {
         fprintf( stderr, "pthread_create() failed (%d): %s\n", rc, strerror( rc ));
         return;
@@ -210,7 +211,6 @@ void pthreadCreate() {
 		pthread_join(tid[i], (void **) &x);
 	}
 
-	}
 
 
 }
