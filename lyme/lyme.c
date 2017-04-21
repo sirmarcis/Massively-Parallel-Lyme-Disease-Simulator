@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include <config.h>
+
 /***************************************************************************/
 /* Defines *****************************************************************/
 /***************************************************************************/
@@ -59,24 +61,27 @@ typedef struct nestInfo {		//struct for each cell in board
 /* Global Variables ********************************************************/
 /***************************************************************************/
 
-int days; 					//number of simulation days
-int infectionRate; 			//infection rate
-int numRanks;				//total number of ranks 
-int myRank;					//rank number
-int numThreadsPer;			//number of threads per rank
-int universeSize;			//size of x and y dimensions of the universe
-int numRowsPer;				//number of rows each rank is responsible for
-nest ** universe;			//universe board
-int miceTravelDays;			//number of days a mice can travel before it dies
-int tickFeedingDays;		//number of days needed for tick to feed
-int totalNumMouse; 			//total number of mice across the simulation
-int totalNumDeer; 			//total number of deer across the simulation
-int carryLarva;				//number of larva a mice carries when it gets bit
-int carryNymph;				//number of nymphs a mice carries when it gets bit
-int carryAdult;				//number of adult ticks a mice carries when it gets bit
-int tickBand;				//column band size of where ticks are initialized
-pthread_barrier_t barrier;	//barrier for threads
+/*
+int days; 				//number of simulation days
+int infectionRate; 		//infection rate
+int numRanks;			//total number of ranks 
+int myRank;				//rank number
+int pthreads;		//number of threads per rank
+int universeSize;		//size of x and y dimensions of the universe
+int numRowsPer;			//number of rows each rank is responsible for
+int miceTravelDays;		//number of days a mice can travel before it dies
+int tickFeedingDays;	//number of days needed for tick to feed
+int totalNumMouse; 		//total number of mice across the simulation
+int totalNumDeer; 		//total number of deer across the simulation
+int carryLarva;			//number of larva a mice carries when it gets bit
+int carryNymph;			//number of nymphs a mice carries when it gets bit
+int carryAdult;			//number of adult ticks a mice carries when it gets bit
+int tickBand;			//column band size of where ticks are initialized
 
+*/
+
+nest ** universe;		//universe board
+pthread_barrier_t barrier;	//barrier for threads
 
 /***************************************************************************/
 /* Function Decs ***********************************************************/
@@ -86,6 +91,7 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd, int uninfectedNymph);
 void pthreadCreate();
 void * updateUniverse();
+void readCommandLineArgs(int argc, char* argv[]);
 
 
 
@@ -93,12 +99,11 @@ void * updateUniverse();
 /* Notes         ***********************************************************/
 /***************************************************************************/
 
-/* typeTickCarrying: 0 - none
-					 1 - larva
-					 2 - uninfected nymph
-					 3 - infected nymph
-					 4 - uninfected adult
-					 5 - infected adult
+/* typeTickCarrying: 0 - larva
+					 1 - uninfected nymph
+					 2 - infected nymph
+					 3 - uninfected adult
+					 4 - infected adult
 
 		   carrying: 0 - not carrying a tick
 					 1 - carrying a tick
@@ -121,27 +126,17 @@ int main(int argc, char* argv[])
 	
 // Init 16,384 RNG streams - each rank has an independent stream
 	InitDefault();
+	initConfigs();
 	
 	MPI_Barrier( MPI_COMM_WORLD );
 
-// Read in command-line arguments
-	days = 1;
-	infectionRate = 25;
-	numThreadsPer = 0;
-	universeSize =  16;
-	miceTravelDays = 4;
-	tickFeedingDays = 3;
-	totalNumMouse = 9;
-	totalNumDeer = 2;
-	carryLarva = 10;
-	carryNymph = 5;
-	carryAdult = 2;
-	tickBand = 2;
-	numThreadsPer = 2;
+// Read in command-line arguments and set global variables
+	readCommandLineArgs(argc, argv);
+	
 
 // Allocate my rank's chunk of universe
 	numRowsPer = universeSize / numRanks;
-  
+  	
 
 //Initialize universe with ticks, mice, and deer
 	initUniverse();
@@ -167,6 +162,40 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+void readCommandLineArgs(int argc, char* argv[]){
+	
+	days = 1;
+	infectionRate = 25;
+	pthreads = 0;
+	universeSize =  16;
+	miceTravelDays = 4;
+	tickFeedingDays = 3;
+	totalNumMouse = 9;
+	totalNumDeer = 2;
+	carryLarva = 10;
+	carryNymph = 5;
+	carryAdult = 2;
+	tickBand = 2;
+	pthreads = 2;
+
+	if(argc >= 3){ // order of arguments doesn't matter, and we do not require arguments
+		for(int currArg = 1; currArg < argc; currArg+=2){ 
+			if(currArg+1 < argc){
+				//printf("currArg[%d] argc[%d] arg_str[%s] val_str[%s]\n", currArg, argc, argv[currArg], argv[currArg+1]);
+				if(strcmp(argv[currArg], "--pthreads") == 0){ // to add another command line arg, just add an 'else if' of this format 
+					pthreads = atoi(argv[currArg+1]);
+				} else if(strcmp(argv[currArg], "--universeSize") == 0){
+					universeSize = atoi(argv[currArg+1]);
+				} else if(strcmp(argv[currArg], "--config") == 0){ // keep only this 'if' when we switch to using config structs
+					int configNum = atoi(argv[currArg+1]);
+					useConfiguration(configNum);
+				}
+			}	
+		}
+	}
+	//printf("configuration: pthreads per rank[%d] universeSize[%d]x[%d]\n", pthreads, universeSize, universeSize);
+}
+
 void * updateUniverse() {
 	return NULL;
 }
@@ -174,12 +203,12 @@ void * updateUniverse() {
 void pthreadCreate() {
 
 	//Initialize barrier
-	pthread_barrier_init(&barrier, NULL, numThreadsPer);
+	pthread_barrier_init(&barrier, NULL, pthreads);
 
 	//Create array holding total number of threads
-	pthread_t tid[numThreadsPer];
+	pthread_t tid[pthreads];
 	int i=1;
-	for (i=1; i < numThreadsPer; i++) {
+	for (i=1; i < pthreads; i++) {
 		thread * t = (thread *)  malloc(sizeof(thread));
 
 		//Assign thread its given ID
@@ -194,20 +223,20 @@ void pthreadCreate() {
 	}
 
 	//make main thread have tid = 0
-    i=0;
-    thread * t = (thread *) malloc(sizeof(thread));
-    int * id = (int *) malloc(sizeof(int));
-    *id = i;
-    t->myTID = id;
-    int rc = pthread_create( &tid[i], NULL, updateUniverse, t);
-    if (rc != 0) {
-        fprintf( stderr, "pthread_create() failed (%d): %s\n", rc, strerror( rc ));
-        return;
-    }
+	i=0;
+	thread * t = (thread *) malloc(sizeof(thread));
+	int * id = (int *) malloc(sizeof(int));
+	*id = i;
+	t->myTID = id;
+	int rc = pthread_create( &tid[i], NULL, updateUniverse, t);
+	if (rc != 0) {
+		fprintf( stderr, "pthread_create() failed (%d): %s\n", rc, strerror( rc ));
+		return;
+	}
 
 
 	//Wait for threads to join the main
-	for (i=0; i < numThreadsPer; i++) {
+	for (i=0; i < pthreads; i++) {
 		unsigned int * x;
 		pthread_join(tid[i], (void **) &x);
 	}
@@ -221,10 +250,10 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 	nest n;
 	if (trueRow % 2 == 0) {
 		if (j % 2 == 0) {
-		    //make Mice objects
-		    n.numMice = numMicePerNest;
-		    n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
-		    for(int k = 0; k < numMicePerNest; k++){
+			//make Mice objects
+			n.numMice = numMicePerNest;
+			n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
+			for(int k = 0; k < numMicePerNest; k++){
 				mouse m;
 				m.lifespan = mouseLifespan;
 				m.numDaysTraveled = 0;
@@ -232,20 +261,20 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 				m.typeTickCarrying = 0;
 				m.infected = 0;
 				n.miceinNest[k] = m;
-		  	}
+			}
 		}
 
 		else {
-		    n.numMice = 0;
-		    n.miceinNest = NULL; // note: this may haveto change
+			n.numMice = 0;
+			n.miceinNest = NULL; // note: this may haveto change
 		}
 	}
-    else {
+	else {
 		if (j % 2 == 1) {
-		    //make Mice objects
-		    n.numMice = numMicePerNest;
-		    n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
-		    for(int k = 0; k < numMicePerNest; k++){
+			//make Mice objects
+			n.numMice = numMicePerNest;
+			n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
+			for(int k = 0; k < numMicePerNest; k++){
 				mouse m;
 				m.lifespan = mouseLifespan;
 				m.numDaysTraveled = 0;
@@ -253,15 +282,15 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 				m.typeTickCarrying = 0;
 				m.infected = 0;
 				n.miceinNest[k] = m;
-		  	}
+			}
 		}
 
 		else {
-		    n.numMice = 0;
-		    n.miceinNest = NULL; // note: this may haveto change
+			n.numMice = 0;
+			n.miceinNest = NULL; // note: this may haveto change
 		}
-  	}
-  	universe[i][j] = n;
+	}
+	universe[i][j] = n;
 }
 
 // Initializes nymphs within a column band, every fourth row
@@ -287,22 +316,22 @@ void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd, int uninfe
 // Initializes ticks and mice
 void initUniverse() {
 	int numMicePerNest = 5;
-    int mouseLifespan = 15;
-    int uninfectedNymph = 1000;
-    int trueRow = myRank * numRowsPer;
-    int bandStart = universeSize/2 - tickBand/2;
-    int bandEnd = universeSize/2 + tickBand/2;
-    int i=0;
-    int j=0;
-    universe = (nest **) malloc(numRowsPer * sizeof(nest *));
+	int mouseLifespan = 15;
+	int uninfectedNymph = 1000;
+	int trueRow = myRank * numRowsPer;
+	int bandStart = universeSize/2 - tickBand/2;
+	int bandEnd = universeSize/2 + tickBand/2;
+	int i=0;
+	int j=0;
+	universe = (nest **) malloc(numRowsPer * sizeof(nest *));
 
-    for (i=0; i < numRowsPer; i++) {
+	for (i=0; i < numRowsPer; i++) {
 		universe[i] = (nest *) malloc(universeSize * sizeof(nest));
 
 		for (j=0; j < universeSize; j++) {
-		    initMouse(i, j, trueRow, numMicePerNest, mouseLifespan);
-		    initTicks(i, j, trueRow, bandStart, bandEnd, uninfectedNymph);
-		    
+			initMouse(i, j, trueRow, numMicePerNest, mouseLifespan);
+			initTicks(i, j, trueRow, bandStart, bandEnd, uninfectedNymph);
+			
 		}
 	trueRow ++;
   }
