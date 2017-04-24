@@ -59,20 +59,21 @@ mouse * pop_mouse_left(mouse_list *l){
 		l->head = l->head->next;
 		//Reassign the previous of the new head to the tail
 		l->head->prev = l->tail;
-
+		pthread_mutex_unlock(&(l->mutex));
 		return temp;
 	}
 	else if(l->count == 1){
 		mouse * temp = l->head;
 		l->head = NULL;
 		l->tail = NULL;
+		pthread_mutex_unlock(&(l->mutex));
 		return temp;
 	}
 	else{
 		printf("Can't pop from an empty list");
+		pthread_mutex_unlock(&(l->mutex));
 		return NULL;
 	}
-	pthread_mutex_unlock(&(l->mutex));
 }
 
 /*int mouse_list_remove_element(mouse_list * l, void* ptr){
