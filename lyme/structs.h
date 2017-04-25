@@ -11,7 +11,10 @@ typedef struct mouseInfo {
 	int infected;
 	struct mouseInfo * prev;
 	struct mouseInfo * next;
-
+	int tickDropOffDate;
+	nest * currentNest;
+	int nextHome_x;
+	int nextHome_y;
 } mouse;
 
 typedef struct deerInfo {
@@ -36,7 +39,6 @@ typedef struct nestInfo {		//struct for each cell in board
 	struct nestInfo * prev;
 	struct nestInfo * next;
 } nest;
-
 
 typedef struct {
 	int count;

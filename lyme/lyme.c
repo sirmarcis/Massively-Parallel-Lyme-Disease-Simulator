@@ -5,7 +5,6 @@
 #include <stdio.h>
 // Make configuration structures within separate file (.h) for arguments
 
-
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -100,6 +99,9 @@ int tickBand;			//column band size of where ticks are initialized
 
 nest ** universe;		//universe board
 pthread_barrier_t barrier;	//barrier for threads
+nest_list * = nest_list_create();
+mouse_list * = mouse_list_create();
+
 
 /***************************************************************************/
 /* Function Decs ***********************************************************/
