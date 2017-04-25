@@ -18,6 +18,11 @@
 
 #include <config.h>
 
+#include <structs.h>
+#include <mouse_list.h>
+#include <nest_list.h>
+
+
 /***************************************************************************/
 /* Defines *****************************************************************/
 /***************************************************************************/
@@ -26,18 +31,12 @@
 /* Thread Structs **********************************************************/
 /***************************************************************************/
 
+/* Inside structs.h */
+
+/*
 typedef struct threadInfo {		//struct defining the information for each thread
 	int * myTID;				//given thread id
 } thread;
-
-typedef struct mouseInfo {
-	int lifespan;				//lifespan of mouse
-	int numDaysTraveled;		//number of days mouse has traveled
-	int carrying;				//boolean if mice is carrying ticks
-	int typeTickCarrying;
-	int infected;
-
-} mouse;
 
 typedef struct deerInfo {
 	int infected;
@@ -55,6 +54,25 @@ typedef struct nestInfo {		//struct for each cell in board
 	mouse * miceinNest;			 //array of mice in nest
 	deer * deerinNest;			 //array of deer in nest
 } nest;
+
+typedef struct mouseInfo {
+	int lifespan;				//lifespan of mouse
+	int numDaysTraveled;		//number of days mouse has traveled
+	int carrying;				//boolean if mice is carrying ticks
+	int typeTickCarrying;
+	int infected;
+  struct mouseInfo * prev;
+  struct mouseInfo * next;
+
+} mouse;
+
+typedef struct {
+  int count;
+  mouse *head;
+  mouse *tail;
+  pthread_mutex_t mutex;
+} mouse_list;
+*/
 
 
 /***************************************************************************/
@@ -148,6 +166,81 @@ int main(int argc, char* argv[])
 
 
 	MPI_Barrier( MPI_COMM_WORLD );
+
+	mouse_list* mltest = mouse_list_create();
+	mouse one = { .lifespan = 10};
+	mouse two = { .lifespan = 20};
+	mouse three = { .lifespan = 30};
+	mouse* aa = &one;
+	mouse* bb = &two;
+	mouse* cc = &three;
+	mouse_list_add_element(mltest, aa);
+	mouse_list_add_element(mltest, bb);
+	mouse_list_add_element(mltest, cc);
+	printf("WE %d \n", mltest->count);
+	int lsone = mltest->head->lifespan;
+	int lstwo = mltest->tail->lifespan;
+	int lsthree = mltest->head->next->lifespan;
+	printf("ARE %d \n", lsone);
+    printf("HERE %d \n", lstwo);
+    printf("AGAIN %d \n", lsthree);
+
+
+    mouse* new1 = pop_mouse_left(mltest);
+    int yolo = new1->lifespan;
+    printf("TESTER1: %d \n", yolo);
+
+    mouse* new2 = pop_mouse_left(mltest);
+    int yolo2 = new2->lifespan;
+    printf("TESTER2: %d \n", yolo2);
+
+    mouse* new3 = pop_mouse_left(mltest);
+    int yolo3 = new3->lifespan;
+    printf("TESTER3: %d \n", yolo3);
+
+    mouse* new4 = pop_mouse_left(mltest);
+    if(new4 == NULL)
+    {
+    	printf("ITS NULL\n");
+    }
+
+
+	nest_list* nltest = nest_list_create();
+	nest none = { .larva = 10};
+	nest ntwo = { .larva = 20};
+	nest nthree = { .larva = 30};
+	nest* naa = &none;
+	nest* nbb = &ntwo;
+	nest* ncc = &nthree;
+	nest_list_add_element(nltest, naa);
+	nest_list_add_element(nltest, nbb);
+	nest_list_add_element(nltest, ncc);
+	printf("nWE %d \n", nltest->count);
+	int nlsone = nltest->head->larva;
+	int nlstwo = nltest->tail->larva;
+	int nlsthree = nltest->head->next->larva;
+	printf("nARE %d \n", nlsone);
+    printf("nHERE %d \n", nlstwo);
+    printf("nAGAIN %d \n", nlsthree);
+
+
+    nest* nnew1 = pop_nest_left(nltest);
+    int nyolo = nnew1->larva;
+    printf("nTESTER1: %d \n", nyolo);
+
+    nest* nnew2 = pop_nest_left(nltest);
+    int nyolo2 = nnew2->larva;
+    printf("nTESTER2: %d \n", nyolo2);
+
+    nest* nnew3 = pop_nest_left(nltest);
+    int nyolo3 = nnew3->larva;
+    printf("nTESTER3: %d \n", nyolo3);
+
+    nest* nnew4 = pop_nest_left(nltest);
+    if(nnew4 == NULL)
+    {
+    	printf("nITS NULL\n");
+    }
 
 // End timing
 	if (myRank == 0)  {
