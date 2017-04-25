@@ -1,13 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//#include <mouse_list.h>
+//#include <nest_list.h>
 #include <structs.h>
 
 /* Naive linked list implementation */
 
-mouse_list * mouse_list_create(){
-  mouse_list *l = (mouse_list *) malloc(sizeof(mouse_list));
+nest_list * nest_list_create(){
+  nest_list *l = (nest_list *) malloc(sizeof(nest_list));
   l->count = 0;
   l->head = NULL;
   l->tail = NULL;
@@ -15,8 +15,8 @@ mouse_list * mouse_list_create(){
   return l;
 }
 
-void mouse_list_free(mouse_list * l){
-  mouse *li, *tmp;
+void nest_list_free(nest_list * l){
+  nest *li, *tmp;
 
   pthread_mutex_lock(&(l->mutex));
 
@@ -34,7 +34,7 @@ void mouse_list_free(mouse_list * l){
   free(l);
 }
 
-mouse * mouse_list_add_element(mouse_list *l, mouse *li){
+nest * nest_list_add_element(nest_list *l, nest *li){
   pthread_mutex_lock(&(l->mutex));
   li->next = NULL;
   li->prev = l->tail;
@@ -54,12 +54,12 @@ mouse * mouse_list_add_element(mouse_list *l, mouse *li){
   return li;
 }
 
-mouse * pop_mouse_left(mouse_list *l){
+nest * pop_nest_left(nest_list *l){
   pthread_mutex_lock(&(l->mutex));
   // 3 or more case
   if(l->count > 2){
-    //Save current head mouse
-    mouse * temp = l->head;
+    //Save current head nest
+    nest * temp = l->head;
     //Reassign the head to the current heads' next element
     l->head = temp->next;
     //Reassign the previous of the new head to the tail
@@ -73,7 +73,7 @@ mouse * pop_mouse_left(mouse_list *l){
   }
   else if (l->count == 2)
   {
-    mouse * temp = l->head;
+    nest * temp = l->head;
     // Since only 1 element after this one, make both head and tail the same as last element
     l->head = temp->next;
     l->tail = l->head;
@@ -87,7 +87,7 @@ mouse * pop_mouse_left(mouse_list *l){
     return temp;
   }
   else if(l->count == 1){
-    mouse * temp = l->head;
+    nest * temp = l->head;
     l->head = NULL;
     l->tail = NULL;
     l->count--;

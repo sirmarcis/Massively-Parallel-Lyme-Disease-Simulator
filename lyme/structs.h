@@ -9,8 +9,8 @@ typedef struct mouseInfo {
 	int carrying;				//boolean if mice is carrying ticks
 	int typeTickCarrying;
 	int infected;
-  struct mouseInfo * prev;
-  struct mouseInfo * next;
+	struct mouseInfo * prev;
+	struct mouseInfo * next;
 
 } mouse;
 
@@ -33,15 +33,24 @@ typedef struct nestInfo {		//struct for each cell in board
 	int numDeer;				 //count for number of deer in cell
 	mouse * miceinNest;			 //array of mice in nest
 	deer * deerinNest;			 //array of deer in nest
+	struct nestInfo * prev;
+	struct nestInfo * next;
 } nest;
 
 
 typedef struct {
-  int count;
-  mouse *head;
-  mouse *tail;
-  pthread_mutex_t mutex;
+	int count;
+	mouse *head;
+	mouse *tail;
+	pthread_mutex_t mutex;
 } mouse_list;
+
+typedef struct {
+	int count;
+	nest *head;
+	nest *tail;
+	pthread_mutex_t mutex;
+} nest_list;
 
 
 

@@ -20,6 +20,8 @@
 
 #include <structs.h>
 #include <mouse_list.h>
+#include <nest_list.h>
+
 
 /***************************************************************************/
 /* Defines *****************************************************************/
@@ -202,6 +204,43 @@ int main(int argc, char* argv[])
     	printf("ITS NULL\n");
     }
 
+
+	nest_list* nltest = nest_list_create();
+	nest none = { .larva = 10};
+	nest ntwo = { .larva = 20};
+	nest nthree = { .larva = 30};
+	nest* naa = &none;
+	nest* nbb = &ntwo;
+	nest* ncc = &nthree;
+	nest_list_add_element(nltest, naa);
+	nest_list_add_element(nltest, nbb);
+	nest_list_add_element(nltest, ncc);
+	printf("nWE %d \n", nltest->count);
+	int nlsone = nltest->head->larva;
+	int nlstwo = nltest->tail->larva;
+	int nlsthree = nltest->head->next->larva;
+	printf("nARE %d \n", nlsone);
+    printf("nHERE %d \n", nlstwo);
+    printf("nAGAIN %d \n", nlsthree);
+
+
+    nest* nnew1 = pop_nest_left(nltest);
+    int nyolo = nnew1->larva;
+    printf("nTESTER1: %d \n", nyolo);
+
+    nest* nnew2 = pop_nest_left(nltest);
+    int nyolo2 = nnew2->larva;
+    printf("nTESTER2: %d \n", nyolo2);
+
+    nest* nnew3 = pop_nest_left(nltest);
+    int nyolo3 = nnew3->larva;
+    printf("nTESTER3: %d \n", nyolo3);
+
+    nest* nnew4 = pop_nest_left(nltest);
+    if(nnew4 == NULL)
+    {
+    	printf("nITS NULL\n");
+    }
 
 // End timing
 	if (myRank == 0)  {
