@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "mouse_list.h"
+
+//#include <mouse_list.h>
+#include <structs.h>
 
 /* Naive linked list implementation */
 

@@ -1,15 +1,9 @@
 #ifndef __LIST_H
 #define __LIST_H
 
-#include <pthread.h>
-#include <mouse.h>
+#include <structs.h>
 
-typedef struct {
-  int count;
-  mouse *head;
-  mouse *tail;
-  pthread_mutex_t mutex;
-} mouse_list;
+
 
 mouse_list *mouse_list_create();
 void mouse_list_free(mouse_list *l);

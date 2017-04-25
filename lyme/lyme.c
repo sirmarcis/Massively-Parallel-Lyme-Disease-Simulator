@@ -17,7 +17,8 @@
 #include <dirent.h>
 
 #include <config.h>
-#include <mouse.h>
+
+#include <structs.h>
 #include <mouse_list.h>
 
 /***************************************************************************/
@@ -28,6 +29,9 @@
 /* Thread Structs **********************************************************/
 /***************************************************************************/
 
+/* Inside structs.h */
+
+/*
 typedef struct threadInfo {		//struct defining the information for each thread
 	int * myTID;				//given thread id
 } thread;
@@ -48,6 +52,25 @@ typedef struct nestInfo {		//struct for each cell in board
 	mouse * miceinNest;			 //array of mice in nest
 	deer * deerinNest;			 //array of deer in nest
 } nest;
+
+typedef struct mouseInfo {
+	int lifespan;				//lifespan of mouse
+	int numDaysTraveled;		//number of days mouse has traveled
+	int carrying;				//boolean if mice is carrying ticks
+	int typeTickCarrying;
+	int infected;
+  struct mouseInfo * prev;
+  struct mouseInfo * next;
+
+} mouse;
+
+typedef struct {
+  int count;
+  mouse *head;
+  mouse *tail;
+  pthread_mutex_t mutex;
+} mouse_list;
+*/
 
 
 /***************************************************************************/
