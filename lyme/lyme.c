@@ -18,6 +18,7 @@
 
 #include <config.h>
 #include <mouse.h>
+#include <mouse_list.h>
 
 /***************************************************************************/
 /* Defines *****************************************************************/
@@ -140,6 +141,44 @@ int main(int argc, char* argv[])
 
 
 	MPI_Barrier( MPI_COMM_WORLD );
+
+	mouse_list* mltest = mouse_list_create();
+	mouse one = { .lifespan = 10};
+	mouse two = { .lifespan = 20};
+	mouse three = { .lifespan = 30};
+	mouse* aa = &one;
+	mouse* bb = &two;
+	mouse* cc = &three;
+	mouse_list_add_element(mltest, aa);
+	mouse_list_add_element(mltest, bb);
+	mouse_list_add_element(mltest, cc);
+	printf("WE %d \n", mltest->count);
+	int lsone = mltest->head->lifespan;
+	int lstwo = mltest->tail->lifespan;
+	int lsthree = mltest->head->next->lifespan;
+	printf("ARE %d \n", lsone);
+    printf("HERE %d \n", lstwo);
+    printf("AGAIN %d \n", lsthree);
+
+
+    mouse* new1 = pop_mouse_left(mltest);
+    int yolo = new1->lifespan;
+    printf("TESTER1: %d \n", yolo);
+
+    mouse* new2 = pop_mouse_left(mltest);
+    int yolo2 = new2->lifespan;
+    printf("TESTER2: %d \n", yolo2);
+
+    mouse* new3 = pop_mouse_left(mltest);
+    int yolo3 = new3->lifespan;
+    printf("TESTER3: %d \n", yolo3);
+
+    mouse* new4 = pop_mouse_left(mltest);
+    if(new4 == NULL)
+    {
+    	printf("ITS NULL\n");
+    }
+
 
 // End timing
 	if (myRank == 0)  {

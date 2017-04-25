@@ -1,3 +1,6 @@
+#ifndef _MOUSEH_
+#define _MOUSEH_
+
 typedef struct mouseInfo {
 	int lifespan;				//lifespan of mouse
 	int numDaysTraveled;		//number of days mouse has traveled
@@ -8,3 +11,5 @@ typedef struct mouseInfo {
   struct mouseInfo * next;
 
 } mouse;
+
+#endif
