@@ -102,7 +102,7 @@ nest * pop_nest_left(nest_list *l){
     return temp;
   }
   else{
-    printf("Can't pop from an empty list");
+    //printf("Can't pop from an empty list\n");
     pthread_mutex_unlock(&(l->mutex));
     return NULL;
   }

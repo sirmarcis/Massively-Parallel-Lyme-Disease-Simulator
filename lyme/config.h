@@ -1,7 +1,7 @@
 
 
 int days; 				//number of simulation days
-int infectionRate; 		//infection rate
+float biteThreshold; 		//infection rate
 int numRanks;			//total number of ranks 
 int myRank;				//rank number
 int pthreads;		//number of threads per rank
@@ -21,7 +21,7 @@ int tickBand;			//column band size of where ticks are initialized
 
 typedef struct configurationInfo {		//struct defining a configuration
 	int days; 				//number of simulation days
-	int infectionRate; 		//infection rate
+	float biteThreshold; 		//infection rate
 	int pthreads;		//number of threads per rank
 	int universeSize;		//size of x and y dimensions of the universe
 	int miceTravelDays;		//number of days a mice can travel before it dies

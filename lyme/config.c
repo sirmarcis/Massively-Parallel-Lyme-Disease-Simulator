@@ -10,7 +10,7 @@ void initConfigs(){
 
 	// INIT config0
 	config0.days = 1;
-	config0.infectionRate = 25;
+	config0.biteThreshold = .25;
 	config0.universeSize =  16;
 	config0.miceTravelDays = 4;
 	config0.tickFeedingDays = 3;
@@ -29,7 +29,7 @@ void useConfiguration(int configNum){
 	if(configNum < numConfigurations){
 		config currConfig = allConfigurations[configNum];
 		days = currConfig.days;
-		infectionRate = currConfig.infectionRate;
+		biteThreshold = currConfig.biteThreshold;
 		universeSize = currConfig.universeSize;
 		miceTravelDays = currConfig.miceTravelDays;
 		tickFeedingDays = currConfig.tickFeedingDays;

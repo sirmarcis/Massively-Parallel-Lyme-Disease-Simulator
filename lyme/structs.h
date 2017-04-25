@@ -26,8 +26,10 @@ struct nestInfo {		//struct for each cell in board
 	int infectedAdult;
 	int numMice;				 //count for number of mice in cell
 	int numDeer;				 //count for number of deer in cell
-	mouse * miceinNest;	 //array of mice in nest
-	deer * deerinNest;			 //array of deer in nest
+	mouse_list * miceInNest;	 //array of mice in nest
+	deer * deerInNest;			 //array of deer in nest
+	pthread_mutex_t mutex;
+
 	//nest * prev;
 	//nest * next;
 };
@@ -42,8 +44,13 @@ struct mouseInfo {
 	//mouse * next;
 	int tickDropOffDate;
 	nest * currentNest;
+	int mustMove;					// if 1, this mouse must move, else if 0, mouse can stay
 	int nextHome_x;				// next x location of this mouse with respect to the entire universe
 	int nextHome_y;				// next y location of this mouse with respect to the entire universe
+
+	int direction_x;				// can be any value between 0 and 8, inclusive.  0 is straight up, subsiquent values go clockwise
+	int direction_y;
+	int mouseUID; 				// unique ID of a mouse within a rank (not universe)
 };
 
 struct deerInfo {

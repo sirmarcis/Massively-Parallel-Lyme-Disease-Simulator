@@ -32,6 +32,8 @@ fespan
 3) Send neighboring ranks the mice that need to move
 	- These neighboring ranks will add these mice to their queue
 	- Must move these mice to their new location, adding them to the new nests's mouse queue
+	Notes: Threads in parallel will calculate the new locations of mice - if a mouse moves outside the boundaries of the rank, it will add it to lists that will be sent to neighboring ranks
+Then after a pthread_barrier, rank 0 will construct 2D array representing each mice and send it to neighboring ranks
 
 Shopping List:
 Thread-safe queue

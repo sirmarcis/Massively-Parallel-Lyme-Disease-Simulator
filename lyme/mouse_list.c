@@ -104,8 +104,9 @@ mouse * pop_mouse_left(mouse_list *l){
     return temp;
   }
   else{
-    printf("Can't pop from an empty list");
+    //printf("Can't pop from an empty list\n");
     pthread_mutex_unlock(&(l->mutex));
     return NULL;
   }
 }
+
