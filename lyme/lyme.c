@@ -83,7 +83,7 @@ int days; 				//number of simulation days
 int infectionRate; 		//infection rate
 int numRanks;			//total number of ranks 
 int myRank;				//rank number
-int pthreads;		//number of threads per rank
+int pthreads;			//number of threads per rank
 int universeSize;		//size of x and y dimensions of the universe
 int numRowsPer;			//number of rows each rank is responsible for
 int miceTravelDays;		//number of days a mice can travel before it dies
@@ -97,16 +97,17 @@ int tickBand;			//column band size of where ticks are initialized
 
 */
 
-nest ** universe;		//universe board
-pthread_barrier_t barrier;	//barrier for threads
-nest_list * = nest_list_create();
-mouse_list * = mouse_list_create();
+nest ** universe;								//universe board
+pthread_barrier_t barrier;						//barrier for threads
+nest_list * nestList = nest_list_create();		//list containing nests that have mice
+mouse_list * mouseList = mouse_list_create();	//list containing all mice
 
 
 /***************************************************************************/
 /* Function Decs ***********************************************************/
 /***************************************************************************/
 void initUniverse();
+void initLists();
 void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan);
 void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd, int uninfectedNymph);
 void pthreadCreate();
@@ -274,18 +275,26 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 		if (j % 2 == 0) {
 			//make Mice objects
 			n.numMice = numMicePerNest;
-			n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
+			mouse_list * miceInNest = mouse_list_create();
 			for(int k = 0; k < numMicePerNest; k++){
 				mouse m;
 				m.lifespan = mouseLifespan;
 				m.numDaysTraveled = 0;
 				m.carrying = 0;
-				m.typeTickCarrying = 0;
+				m.typeTickCarrying = -1;
 				m.infected = 0;
-				n.miceinNest[k] = m;
+				m.currentNest = &n;
+				m.nextHome_x = trueRow;
+				m.nextHome_y = j;
+				m.tickDropOffDate = -1;  // should be -1 if there are no ticks on this mouse
+				mouse_list_add_element(miceinNest, &m);	
+				mouse_list_add_element(mouseList, &m);
 			}
-		}
 
+			n.miceinNest = miceinNest;
+			nest_list_add_element(nestList, &n);
+
+		}
 		else {
 			n.numMice = 0;
 			n.miceinNest = NULL; // note: this may haveto change
@@ -295,16 +304,24 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 		if (j % 2 == 1) {
 			//make Mice objects
 			n.numMice = numMicePerNest;
-			n.miceinNest = (mouse *) malloc(numMicePerNest * sizeof(mouse));
+			mouse_list * miceInNest = mouse_list_create();
 			for(int k = 0; k < numMicePerNest; k++){
 				mouse m;
 				m.lifespan = mouseLifespan;
 				m.numDaysTraveled = 0;
 				m.carrying = 0;
-				m.typeTickCarrying = 0;
+				m.typeTickCarrying = -1;
 				m.infected = 0;
-				n.miceinNest[k] = m;
+				m.currentNest = &n;
+				m.nextHome_x = trueRow;
+				m.nextHome_y = j;
+				m.tickDropOffDate = -1;  // should be -1 if there are no ticks on this mouse
+				mouse_list_add_element(miceinNest, &m);	
+				mouse_list_add_element(mouseList, &m);
 			}
+
+			n.miceinNest = miceinNest;
+			nest_list_add_element(nestList, &n);
 		}
 
 		else {
@@ -359,6 +376,7 @@ void initUniverse() {
   }
 
 }
+
 
 /***************************************************************************/
 /* Other Functions  ********************************************************/
