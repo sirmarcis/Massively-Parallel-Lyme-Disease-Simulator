@@ -1,0 +1,39 @@
+What's been done so far:
+-Initialized the board with mice and ticks
+	- Mice are initialized in a checkerboard fashion with a set amount of mice per node
+		-Thinking about making this number random, but this doesn't allow us to have a set number of mice on the board
+	- Nymphs are initialized within a band, every fourth row with a set amount
+		-Looking to make this amount random
+
+*** Mouse struct must contain the location number of the nest (this must be calculated)
+
+Initialization:
+We need to build the queue of nests with mice and a queue of all mice
+
+Queue of nests that have mice
+Queue of all mice
+
+For all ranks, we need two lists that contain mice that need to move to neighboring ranks
+
+1) Process all nests in parallel:
+	- Process tick bites (this is in serial)
+	- Process which mice need to move
+		-If numMice >= 1: Mark all mice to move except mouse 0
+		-Need to pop all mice except this resident mouse off this list/queue/whatever we pick
+2) Process all mice from queue of mice in parallel:
+	- Check their li
+fespan
+		- If they die, remove them from the queue and if there are ticks on it, then they also die
+	- Make them move
+		- Pick a direction and make it move
+		- If the mouse leaves the rank's area, put it in the lists to send to neighboring ranks
+		- It it stays within the current rank's area, add it back to the current rank's mouse queue
+		and to its new nest's mouse queue
+3) Send neighboring ranks the mice that need to move
+	- These neighboring ranks will add these mice to their queue
+	- Must move these mice to their new location, adding them to the new nests's mouse queue
+
+Shopping List:
+Thread-safe queue
+
+** Need to change the array of mice within each nest to be this thread-safe queue
