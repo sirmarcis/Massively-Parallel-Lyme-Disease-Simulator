@@ -32,47 +32,6 @@
 
 /* Inside structs.h */
 
-/*
-typedef struct threadInfo {		//struct defining the information for each thread
-	int * myTID;				//given thread id
-} thread;
-
-typedef struct deerInfo {
-	int infected;
-	int carrying;
-} deer;
-
-typedef struct nestInfo {		//struct for each cell in board
-	int larva;					//counts of each type of tick
-	int uninfectedNymph;
-	int infectedNymph;
-	int uninfectedAdult;
-	int infectedAdult;
-	int numMice;				 //count for number of mice in cell
-	int numDeer;				 //count for number of deer in cell
-	mouse * miceinNest;			 //array of mice in nest
-	deer * deerinNest;			 //array of deer in nest
-} nest;
-
-typedef struct mouseInfo {
-	int lifespan;				//lifespan of mouse
-	int numDaysTraveled;		//number of days mouse has traveled
-	int carrying;				//boolean if mice is carrying ticks
-	int typeTickCarrying;
-	int infected;
-  struct mouseInfo * prev;
-  struct mouseInfo * next;
-
-} mouse;
-
-typedef struct {
-  int count;
-  mouse *head;
-  mouse *tail;
-  pthread_mutex_t mutex;
-} mouse_list;
-*/
-
 
 /***************************************************************************/
 /* Global Variables ********************************************************/
@@ -158,7 +117,9 @@ int main(int argc, char* argv[])
 
 // Allocate my rank's chunk of universe
 	numRowsPer = universeSize / numRanks;
-  	
+
+//Uncomment below line if wish to test lists  	
+	//testLists();
 
 //Initialize universe with ticks, mice, and deer
 	initUniverse();
@@ -394,31 +355,31 @@ void testLists() {
 	mouse_list_add_element(mltest, bb);
 	mouse_list_add_element(mltest, cc);
 	printf("WE %d \n", mltest->count);
-	int lsone = mltest->head->lifespan;
-	int lstwo = mltest->tail->lifespan;
-	int lsthree = mltest->head->next->lifespan;
+	int lsone = mltest->head->val->lifespan;
+	int lstwo = mltest->tail->val->lifespan;
+	int lsthree = mltest->head->next->val->lifespan;
 	printf("ARE %d \n", lsone);
-    printf("HERE %d \n", lstwo);
-    printf("AGAIN %d \n", lsthree);
+  printf("HERE %d \n", lstwo);
+  printf("AGAIN %d \n", lsthree);
 
 
-    mouse* new1 = pop_mouse_left(mltest);
-    int yolo = new1->lifespan;
-    printf("TESTER1: %d \n", yolo);
+  mouse* new1 = pop_mouse_left(mltest);
+  int yolo = new1->lifespan;
+  printf("TESTER1: %d \n", yolo);
 
-    mouse* new2 = pop_mouse_left(mltest);
-    int yolo2 = new2->lifespan;
-    printf("TESTER2: %d \n", yolo2);
+  mouse* new2 = pop_mouse_left(mltest);
+  int yolo2 = new2->lifespan;
+  printf("TESTER2: %d \n", yolo2);
 
-    mouse* new3 = pop_mouse_left(mltest);
-    int yolo3 = new3->lifespan;
-    printf("TESTER3: %d \n", yolo3);
+  mouse* new3 = pop_mouse_left(mltest);
+  int yolo3 = new3->lifespan;
+  printf("TESTER3: %d \n", yolo3);
 
-    mouse* new4 = pop_mouse_left(mltest);
-    if(new4 == NULL)
-    {
-    	printf("ITS NULL\n");
-    }
+  mouse* new4 = pop_mouse_left(mltest);
+  if(new4 == NULL)
+  {
+  	printf("ITS NULL\n");
+  }
 
 
 	nest_list* nltest = nest_list_create();
@@ -432,30 +393,30 @@ void testLists() {
 	nest_list_add_element(nltest, nbb);
 	nest_list_add_element(nltest, ncc);
 	printf("nWE %d \n", nltest->count);
-	int nlsone = nltest->head->larva;
-	int nlstwo = nltest->tail->larva;
-	int nlsthree = nltest->head->next->larva;
+	int nlsone = nltest->head->val->larva;
+	int nlstwo = nltest->tail->val->larva;
+	int nlsthree = nltest->head->next->val->larva;
 	printf("nARE %d \n", nlsone);
-    printf("nHERE %d \n", nlstwo);
-    printf("nAGAIN %d \n", nlsthree);
+  printf("nHERE %d \n", nlstwo);
+  printf("nAGAIN %d \n", nlsthree);
 
 
-    nest* nnew1 = pop_nest_left(nltest);
-    int nyolo = nnew1->larva;
-    printf("nTESTER1: %d \n", nyolo);
+  nest* nnew1 = pop_nest_left(nltest);
+  int nyolo = nnew1->larva;
+  printf("nTESTER1: %d \n", nyolo);
 
-    nest* nnew2 = pop_nest_left(nltest);
-    int nyolo2 = nnew2->larva;
-    printf("nTESTER2: %d \n", nyolo2);
+  nest* nnew2 = pop_nest_left(nltest);
+  int nyolo2 = nnew2->larva;
+  printf("nTESTER2: %d \n", nyolo2);
 
-    nest* nnew3 = pop_nest_left(nltest);
-    int nyolo3 = nnew3->larva;
-    printf("nTESTER3: %d \n", nyolo3);
+  nest* nnew3 = pop_nest_left(nltest);
+  int nyolo3 = nnew3->larva;
+  printf("nTESTER3: %d \n", nyolo3);
 
-    nest* nnew4 = pop_nest_left(nltest);
-    if(nnew4 == NULL)
-    {
-    	printf("nITS NULL\n");
+  nest* nnew4 = pop_nest_left(nltest);
+  if(nnew4 == NULL)
+  {
+  	printf("nITS NULL\n");
     }
 }
 
