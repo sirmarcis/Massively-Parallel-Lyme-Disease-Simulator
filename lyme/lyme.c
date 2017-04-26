@@ -319,7 +319,7 @@ void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay){
 	}
 }
 
-int constructCommunicationArr(mouse_list * mList, int** commArr){
+int constructCommunicationArr(mouse_list * mList, int* commArr){
 	//commArr = (int**)malloc(mList->count*sizeof(int*));
 	int commArrSize = mList->count;
 	//printf("The size of the array we are creating is %d\n", commArrSize);
@@ -328,43 +328,45 @@ int constructCommunicationArr(mouse_list * mList, int** commArr){
 		int i = 0;
 		while((currMouse = pop_mouse_left(mList)) != NULL){
 			//commArr[i] = (int*)malloc(11*sizeof(int));
-			commArr[i][0] = currMouse->lifespan;
-			commArr[i][1] = currMouse->numDaysTraveled;
-			commArr[i][2] = currMouse->carrying;
-			commArr[i][3] = currMouse->typeTickCarrying;
-			commArr[i][4] = currMouse->infected;
-			commArr[i][5] = currMouse->tickDropOffDate;
-			commArr[i][6] = currMouse->mustMove;
-			commArr[i][7] = currMouse->nextHome_x;
-			commArr[i][8] = currMouse->nextHome_y;
-			commArr[i][9] = currMouse->direction_x;
-			commArr[i][10] = currMouse->direction_y;
-			commArr[i][11] = currMouse->mouseUID;
-			i++;
+			commArr[i] = currMouse->lifespan;
+			commArr[i+1] = currMouse->numDaysTraveled;
+			commArr[i+2] = currMouse->carrying;
+			commArr[i+3] = currMouse->typeTickCarrying;
+			commArr[i+4] = currMouse->infected;
+			commArr[i+5] = currMouse->tickDropOffDate;
+			commArr[i+6] = currMouse->mustMove;
+			commArr[i+7] = currMouse->nextHome_x;
+			commArr[i+8] = currMouse->nextHome_y;
+			commArr[i+9] = currMouse->direction_x;
+			commArr[i+10] = currMouse->direction_y;
+			commArr[i+11] = currMouse->mouseUID;
+			i += 12;
 		}
 	}
 
 	return commArrSize;
 }
 
-void addExternalMiceToRank(int** commArr, int commArrSize){
+void addExternalMiceToRank(int* commArr, int commArrSize){
 
 	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(commArr), (int)sizeof(int*));
 	for(int i = 0; i < commArrSize; i++){
 		mouse * newMouse = (mouse *)  malloc(sizeof(mouse));
 		//printf("rank[%d] commArr[%d] size[%d]\n", myRank, i, (int)(sizeof(commArr[i])/sizeof(int)));
-		newMouse->lifespan = commArr[i][0];
-		newMouse->numDaysTraveled = commArr[i][1];
-		newMouse->carrying = commArr[i][2];
-		newMouse->typeTickCarrying = commArr[i][3];
-		newMouse->infected = commArr[i][4];
-		newMouse->tickDropOffDate = commArr[i][5];
-		newMouse->mustMove = commArr[i][6];
-		newMouse->nextHome_x = commArr[i][7];
-		newMouse->nextHome_y = commArr[i][8];
-		newMouse->direction_x = commArr[i][9];
-		newMouse->direction_y = commArr[i][10];
-		newMouse->mouseUID = commArr[i][11];
+		newMouse->lifespan = commArr[i];
+		newMouse->numDaysTraveled = commArr[i+1];
+		newMouse->carrying = commArr[i+2];
+		newMouse->typeTickCarrying = commArr[i+3];
+		newMouse->infected = commArr[i+4];
+		newMouse->tickDropOffDate = commArr[i+5];
+		newMouse->mustMove = commArr[i+6];
+		newMouse->nextHome_x = commArr[i+7];
+		newMouse->nextHome_y = commArr[i+8];
+		newMouse->direction_x = commArr[i+9];
+		newMouse->direction_y = commArr[i+10];
+		newMouse->mouseUID = commArr[i+11];
+		i += 12;
+		printf("Did you get here?\n");
 		int x = newMouse->nextHome_x - rowLowerBound;
 		//printf("rank[%d] for incoming mouse[%d] x[%d]\n", myRank, i, x);
 		mouse_list_add_element(universe[x][newMouse->nextHome_y]->miceInNest, newMouse);
@@ -376,7 +378,6 @@ void addExternalMiceToRank(int** commArr, int commArrSize){
 		if (nest_list_contains_p(nestList, universe[x][newMouse->nextHome_y]) == 1) {
 			nest_list_add_element(nestList, universe[x][newMouse->nextHome_y]); // add the nest to the ranks nest list 
 		}
-		free(commArr[i]); // we r done wit u
 	}
 	free(commArr);
 }
@@ -384,16 +385,11 @@ void addExternalMiceToRank(int** commArr, int commArrSize){
 void communicateBetweenRanks(){
 	// prevRankID, nextRankID
 	// sendMiceUpper, sendMiceLower
-	int** lowerCommArr = NULL, ** upperCommArr = NULL;
-	int** incomingLowerCommArr, ** incomingUpperCommArr;
+	int* lowerCommArr = NULL, * upperCommArr = NULL;
+	int* incomingLowerCommArr, * incomingUpperCommArr;
 	int sizeLowerIncomingCommArr, sizeUpperIncomingCommArr;
-	lowerCommArr = (int**)malloc(sendMiceLower->count*sizeof(int*));
-	upperCommArr = (int**)malloc(sendMiceUpper->count*sizeof(int*));
-	int i = 0;
-	for(i = 0; i < sendMiceLower->count; i++)
-		lowerCommArr[i] = (int*)malloc(12*sizeof(int));
-	for(i = 0; i < sendMiceUpper->count; i++)
-		upperCommArr[i] = (int*)malloc(12*sizeof(int));
+	lowerCommArr = (int*)malloc(sendMiceLower->count*12*sizeof(int));
+	upperCommArr = (int*)malloc(sendMiceUpper->count*12*sizeof(int*));
 	int sizeLowerCommArr = constructCommunicationArr(sendMiceLower, lowerCommArr);
 	int sizeUpperCommArr = constructCommunicationArr(sendMiceUpper, upperCommArr);
 	//MPI_Isend();
@@ -408,8 +404,8 @@ void communicateBetweenRanks(){
 			int numElts = 0;
 			printf("rank[%d] lowerCommArr[%d] vals:", myRank, i);
 			for(int j = 0; j < 12; j++){
-				printf("[%d] ", lowerCommArr[i][j]);
-				if(lowerCommArr[i][j] >= -1)
+				printf("[%d] ", lowerCommArr[i*12 + j]);
+				if(lowerCommArr[i*12 + j] >= -1)
 					numElts++;
 			}
 			printf("  -- numElts[%d]\n", numElts);
@@ -417,31 +413,27 @@ void communicateBetweenRanks(){
 		}
 	}
 
-	printf("rank[%d] OUTGOING sizeLowerCommArr[%d] sizeUpperCommArr[%d]\n", myRank, sizeLowerCommArr, sizeUpperCommArr);
+	//printf("rank[%d] OUTGOING sizeLowerCommArr[%d] sizeUpperCommArr[%d]\n", myRank, sizeLowerCommArr, sizeUpperCommArr);
 	MPI_Isend(&sizeUpperCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request4); // send sendMiceUpper->count
-	MPI_Isend(&upperCommArr[0][0], (sizeUpperCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request3); // send upperCommArr
+	MPI_Isend(upperCommArr, (sizeUpperCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request3); // send upperCommArr
 	//MPI_Wait(&request3, &status5);
 	MPI_Isend(&sizeLowerCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request2); // send sendMiceLower->count
-	MPI_Isend(&lowerCommArr[0][0], (sizeLowerCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
+	MPI_Isend(lowerCommArr, (sizeLowerCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
 	//MPI_Wait(&request1, &status6);
 
 	// MPI Ireceives
 	MPI_Irecv(&sizeLowerIncomingCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request5);
 	MPI_Wait(&request5, &status1);
-	printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] \n", myRank, sizeLowerIncomingCommArr);
-	incomingLowerCommArr = (int**)malloc(sizeLowerIncomingCommArr*sizeof(int*));
-	for(int i = 0; i < sizeLowerIncomingCommArr; i++)
-		incomingLowerCommArr[i] = (int*)malloc(12*sizeof(int));
-	MPI_Irecv(&incomingLowerCommArr[0][0], (sizeLowerIncomingCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request6);
+	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] \n", myRank, sizeLowerIncomingCommArr);
+	incomingLowerCommArr = (int*) malloc(sizeLowerIncomingCommArr*12*sizeof(int));
+	MPI_Irecv(incomingLowerCommArr, (sizeLowerIncomingCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request6);
 	MPI_Wait(&request6, &status2);
 
 	MPI_Irecv(&sizeUpperIncomingCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request7);
 	MPI_Wait(&request7, &status3);
-	printf("rank[%d] INCOMING sizeUpperIncomingCommArr[%d]\n", myRank, sizeUpperIncomingCommArr);
-	incomingUpperCommArr = (int**)malloc(sizeUpperIncomingCommArr*sizeof(int*));
-	for(int i = 0; i < sizeUpperIncomingCommArr; i++)
-		incomingUpperCommArr[i] = (int*)malloc(12*sizeof(int));
-	MPI_Irecv(&incomingUpperCommArr[0][0], (sizeUpperIncomingCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request8);
+	//printf("rank[%d] INCOMING sizeUpperIncomingCommArr[%d]\n", myRank, sizeUpperIncomingCommArr);
+	incomingUpperCommArr = (int*) malloc(sizeUpperIncomingCommArr*12*sizeof(int));
+	MPI_Irecv(incomingUpperCommArr, (sizeUpperIncomingCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request8);
 	MPI_Wait(&request8, &status4);
 	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] sizeUpperIncomingCommArr[%d]\n", myRank, sizeLowerIncomingCommArr, sizeUpperIncomingCommArr);
 	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(incomingLowerCommArr), (int)sizeof(int*));
@@ -449,10 +441,10 @@ void communicateBetweenRanks(){
 	if(myRank == 3){
 		for(int i = 0; i < sizeUpperIncomingCommArr; i++){
 			int numElts = 0;
-			printf("rank[%d] incomingUpperCommArr[%d] vals:", myRank, i);
+			printf("rank[%d] sizeUpperIncomingCommArr[%d] vals:", myRank, i);
 			for(int j = 0; j < 12; j++){
-				printf("[%d] ", incomingUpperCommArr[i][j]);
-				if(incomingUpperCommArr[i][j] >= -1)
+				printf("[%d] ", incomingUpperCommArr[i*12 + j]);
+				if(incomingUpperCommArr[i*12 + j] >= -1)
 					numElts++;
 			}
 			printf("  -- numElts[%d]\n", numElts);
@@ -461,7 +453,7 @@ void communicateBetweenRanks(){
 	}
 
 	addExternalMiceToRank(incomingLowerCommArr, sizeLowerIncomingCommArr);
-	addExternalMiceToRank(incomingUpperCommArr, sizeUpperIncomingCommArr);
+	//addExternalMiceToRank(incomingUpperCommArr, sizeUpperIncomingCommArr);
 
 }
 
