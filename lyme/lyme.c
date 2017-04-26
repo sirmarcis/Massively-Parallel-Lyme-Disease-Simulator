@@ -64,11 +64,7 @@ mouse_list * newMouseList;
 mouse_list * sendMiceUpper;						//list containing mice that leave rank's area from the bottom
 mouse_list * sendMiceLower;						//list containing mice that leave rank's area from the top
 int mouseUID_cntr = 0;
-int mouseThreshold;
-int rowLowerBound;
-int rowUpperBound;
-int prevRankID;
-int nextRankID;
+
 
 
 /***************************************************************************/
@@ -76,8 +72,16 @@ int nextRankID;
 /***************************************************************************/
 void initUniverse();
 void initLists();
-void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan);
-void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd, int uninfectedNymph);
+void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay);
+void moveMouse(mouse* currMouse);
+void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay);
+int constructCommunicationArr(mouse_list * mList, int* commArr);
+void addExternalMiceToRank(int* commArr, int commArrSize);
+void communicateBetweenRanks();
+void calcMouseDirection(mouse * m, int trueRow);
+void initSingleMouse(mouse_list * miceInNest, nest *n, int trueRow, int j);
+void initMouse(int i, int j, int trueRow);
+void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd);
 void pthreadCreate();
 void * updateUniverse(void *s);
 void readCommandLineArgs(int argc, char* argv[]);
@@ -120,14 +124,8 @@ int main(int argc, char* argv[])
 	
 	MPI_Barrier( MPI_COMM_WORLD );
 
-	// Allocate my rank's chunk of universe
-	
-
 // Read in command-line arguments and set global variables
 	readCommandLineArgs(argc, argv);
-	
-
-
 
 // calculate neighbor rank ID's
 	prevRankID = myRank-1;
@@ -153,7 +151,6 @@ int main(int argc, char* argv[])
 
 // sync back all ranks
 	MPI_Barrier( MPI_COMM_WORLD );
-
 
 // End timing
 	if (myRank == 0)  {
@@ -192,9 +189,7 @@ int main(int argc, char* argv[])
 
 void readCommandLineArgs(int argc, char* argv[]){
 	
-
-
-	days = 1;
+	days = 3;
 	biteThreshold = .25;
 	pthreads = 0;
 	universeSize = 16;
@@ -211,6 +206,11 @@ void readCommandLineArgs(int argc, char* argv[]){
 	numRowsPer = universeSize / numRanks;
 	rowLowerBound = numRowsPer * myRank;
 	rowUpperBound = numRowsPer * (myRank+1);
+	numMicePerNest = 5;
+	mouseLifespan = 100;
+	uninfectedNymph = 1000;
+	larvaSpawnDay = 90;
+	numLarva = 1000;
 	//printf("rank[%d] numRowsPer[%d] \n", myRank, numRowsPer);
 
 	if(argc >= 3){ // order of arguments doesn't matter, and we do not require arguments
@@ -323,15 +323,10 @@ void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay){
 }
 
 int constructCommunicationArr(mouse_list * mList, int* commArr){
-	//commArr = (int**)malloc(mList->count*sizeof(int*));
-	//int commArrSize = mList->count;
-	//printf("The size of the array we are creating is %d\n", commArrSize);
 	int i = 0;
 	if(mList->count > 0){
 		mouse* currMouse;
-		
 		while((currMouse = pop_mouse_left(mList)) != NULL){
-			//commArr[i] = (int*)malloc(11*sizeof(int));
 			commArr[i] = currMouse->lifespan;
 			commArr[i+1] = currMouse->numDaysTraveled;
 			commArr[i+2] = currMouse->carrying;
@@ -344,12 +339,9 @@ int constructCommunicationArr(mouse_list * mList, int* commArr){
 			commArr[i+9] = currMouse->direction_x;
 			commArr[i+10] = currMouse->direction_y;
 			commArr[i+11] = currMouse->mouseUID;
-			
-			//printf("rank[%d] mouse[%d][%d] i[%d]\n", myRank, currMouse->mouseUID, commArr[i+11], i);
 			i += 12;
 		}
 	}
-
 	return i;
 }
 
@@ -358,12 +350,8 @@ void printMouse(mouse * m){
 }
 
 void addExternalMiceToRank(int* commArr, int commArrSize){
-
-	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(commArr), (int)sizeof(int*));
-	//mouse_list * tempList = mouse_list_create();
 	for(int i = 0; i < commArrSize; i+=12){
 		mouse * newMouse = (mouse *)  malloc(sizeof(mouse));
-		//printf("rank[%d] commArr[%d] size[%d]\n", myRank, i, (int)(sizeof(commArr[i])/sizeof(int)));
 		newMouse->lifespan = commArr[i];
 		newMouse->numDaysTraveled = commArr[i+1];
 		newMouse->carrying = commArr[i+2];
@@ -376,10 +364,7 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		newMouse->direction_x = commArr[i+9];
 		newMouse->direction_y = commArr[i+10];
 		newMouse->mouseUID = commArr[i+11];
-		//i += 12;
-		//printf("LOCATIONS rank[%d] nextHome_x[%d] nextHome_y[%d]\n", myRank, newMouse->nextHome_x, newMouse->nextHome_y);
 		int x = newMouse->nextHome_x - rowLowerBound;
-		//printf("rank[%d] for incoming mouse[%d] uniLoc(%d, %d) x[%d] rowLowerBound[%d] rowUpperBound[%d]\n", myRank, newMouse->mouseUID, newMouse->nextHome_x, newMouse->nextHome_y, x, rowLowerBound, rowUpperBound);
 		mouse_list_add_element(universe[x][newMouse->nextHome_y]->miceInNest, newMouse);
 		newMouse->currentNest = universe[x][newMouse->nextHome_y]; // set mouse to nest backpointer
 		
@@ -389,30 +374,11 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		if (nest_list_contains_p(nestList, universe[x][newMouse->nextHome_y]) == 1) {
 			nest_list_add_element(nestList, universe[x][newMouse->nextHome_y]); // add the nest to the ranks nest list 
 		}
-		//mouse_list_add_element(tempList, newMouse);
 	}
-	/*mouse * currMouse;
-	while((currMouse = pop_mouse_left(tempList)) != NULL){
-		//printf("LOCATIONS rank[%d] nextHome_x[%d] nextHome_y[%d]\n", myRank, newMouse->nextHome_x, newMouse->nextHome_y);
-		int x = currMouse->nextHome_x - rowLowerBound;
-		printf("rank[%d] for incoming mouse[%d] uniLoc(%d, %d) x[%d] rowLowerBound[%d] rowUpperBound[%d]\n", myRank, currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, x, rowLowerBound, rowUpperBound);
-		mouse_list_add_element(universe[x][currMouse->nextHome_y]->miceInNest, currMouse);
-		currMouse->currentNest = universe[x][currMouse->nextHome_y]; // set mouse to nest backpointer
-		
-		//Here is where all our dreams may die (<= fuckin sara...)
-		universe[x][currMouse->nextHome_y]->numMice++;
-		mouse_list_add_element(mouseList, currMouse); // add the mouse to the ranks mouse list
-		if (nest_list_contains_p(nestList, universe[x][currMouse->nextHome_y]) == 1) {
-			nest_list_add_element(nestList, universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
-		}
-	}*/
-	//mouse_list_free(tempList);
-	//free(commArr);
+	
 }
 
 void communicateBetweenRanks(){
-	// prevRankID, nextRankID
-	// sendMiceUpper, sendMiceLower
 	int* lowerCommArr = NULL, * upperCommArr = NULL;
 	//int* incomingLowerCommArr, * incomingUpperCommArr;
 	int sizeLowerIncomingCommArr, sizeUpperIncomingCommArr;
@@ -424,8 +390,6 @@ void communicateBetweenRanks(){
 	// we need to send the 2d arrays and the sizes of them (4 Isends, 4 Irecieves)
 	MPI_Request request1, request2, request3, request4, request5, request6, request7, request8;
 	MPI_Status status1, status2, status3, status4;
-	//int sizeLowerCommArr = sendMiceLower->count * 11;
-	//int sizeUpperCommArr = sendMiceUpper->count * 11;
 
 	//printf("rank[%d] OUTGOING sizeLowerCommArr[%d] sizeUpperCommArr[%d]\n", myRank, sizeLowerCommArr, sizeUpperCommArr);
 	MPI_Isend(&sizeUpperCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request4); // send sendMiceUpper->count
@@ -451,10 +415,7 @@ void communicateBetweenRanks(){
 	int incomingUpperCommArr[sizeUpperIncomingCommArr];
 	MPI_Irecv(incomingUpperCommArr, sizeUpperIncomingCommArr, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request8);
 	MPI_Wait(&request8, &status4);
-	int numIncommingMice = sizeof(incomingLowerCommArr) / sizeof(incomingLowerCommArr[0]);
-	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] numIncommingMice[%d]\n", myRank, sizeLowerIncomingCommArr, numIncommingMice);
-	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(incomingLowerCommArr), (int)sizeof(int*));
-
+	
 	addExternalMiceToRank(incomingLowerCommArr, sizeLowerIncomingCommArr);
 	addExternalMiceToRank(incomingUpperCommArr, sizeUpperIncomingCommArr);
 
@@ -582,7 +543,7 @@ void calcMouseDirection(mouse * m, int trueRow){
 	}
 }
 
-void initSingleMouse(mouse_list * miceInNest, nest *n, int mouseLifespan, int trueRow, int j){
+void initSingleMouse(mouse_list * miceInNest, nest *n, int trueRow, int j){
 	mouse* m = (mouse *)  malloc(sizeof(mouse));
 	m->lifespan = mouseLifespan;
 	m->numDaysTraveled = 0;
@@ -604,7 +565,7 @@ void initSingleMouse(mouse_list * miceInNest, nest *n, int mouseLifespan, int tr
 }
 
 //Initializes mice in a checkerboard fashion
-void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan) {
+void initMouse(int i, int j, int trueRow) {
 	nest *n = (nest *)malloc(sizeof(nest));
 	pthread_mutex_init(&(n->mutex), NULL);
 	if (trueRow % 2 == 0) {
@@ -613,7 +574,7 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 			n->numMice = numMicePerNest;
 			mouse_list * miceInNest = mouse_list_create();
 			for(int k = 0; k < numMicePerNest; k++){
-				initSingleMouse(miceInNest, n, mouseLifespan, trueRow, j);
+				initSingleMouse(miceInNest, n, trueRow, j);
 			}
 			n->miceInNest = miceInNest;
 			nest_list_add_element(nestList, n);
@@ -630,12 +591,11 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 			n->numMice = numMicePerNest;
 			mouse_list * miceInNest = mouse_list_create();
 			for(int k = 0; k < numMicePerNest; k++){
-				initSingleMouse(miceInNest, n, mouseLifespan, trueRow, j);
+				initSingleMouse(miceInNest, n, trueRow, j);
 			}
 			n->miceInNest = miceInNest;
 			nest_list_add_element(nestList, n);
 		}
-
 		else {
 			n->numMice = 0;
 			n->miceInNest = mouse_list_create(); // note: this may haveto change
@@ -645,8 +605,7 @@ void initMouse(int i, int j, int trueRow, int numMicePerNest, int mouseLifespan)
 }
 
 // Initializes nymphs within a column band, every fourth row
-void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd, int uninfectedNymph) {
-
+void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd) {
 	universe[i][j]->larva = 0;
 	universe[i][j]->infectedNymph = 0;
 	universe[i][j]->uninfectedAdult = 0;
@@ -675,9 +634,6 @@ void initLists(){
 
 // Initializes ticks and mice
 void initUniverse() {
-	int numMicePerNest = 5;
-	int mouseLifespan = 15;
-	int uninfectedNymph = 1000;
 	int trueRow = myRank * numRowsPer;
 	int bandStart = universeSize/2 - tickBand/2;
 	int bandEnd = universeSize/2 + tickBand/2;
@@ -689,8 +645,8 @@ void initUniverse() {
 	for (i=0; i < numRowsPer; i++) {
 		universe[i] = (nest **) malloc(universeSize * sizeof(nest*));
 		for (j=0; j < universeSize; j++) {
-			initMouse(i, j, trueRow, numMicePerNest, mouseLifespan);
-			initTicks(i, j, trueRow, bandStart, bandEnd, uninfectedNymph);
+			initMouse(i, j, trueRow);
+			initTicks(i, j, trueRow, bandStart, bandEnd);
 			// uncomment if we need to test list initalization
 			
 			if(universe[i][j]->numMice > 0){
