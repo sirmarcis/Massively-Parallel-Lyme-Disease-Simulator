@@ -32,6 +32,18 @@ void nest_list_free(nest_list * l){
   free(l);
 }
 
+int nest_list_contains_p(nest_list *l, nest *li){
+  nestNode * currNestNode = l->head;
+  if(l->count == 0)
+    return 1; // list does not contain element
+  while(currNestNode != NULL){
+    if(currNestNode->val->i == li->i && currNestNode->val->j == li->j)
+      return 0; // element is present in the list
+    currNestNode = currNestNode->next;
+  }
+  return 1;
+}
+
 nest * nest_list_add_element(nest_list *l, nest *li){
   pthread_mutex_lock(&(l->mutex));
   nestNode * newNode = (nestNode *) malloc(sizeof(nestNode));

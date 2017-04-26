@@ -29,7 +29,8 @@ struct nestInfo {		//struct for each cell in board
 	mouse_list * miceInNest;	 //array of mice in nest
 	deer * deerInNest;			 //array of deer in nest
 	pthread_mutex_t mutex;
-
+	int i;
+	int j;
 	//nest * prev;
 	//nest * next;
 };
