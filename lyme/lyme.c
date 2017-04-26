@@ -420,10 +420,10 @@ void communicateBetweenRanks(){
 	printf("rank[%d] OUTGOING sizeLowerCommArr[%d] sizeUpperCommArr[%d]\n", myRank, sizeLowerCommArr, sizeUpperCommArr);
 	MPI_Isend(&sizeUpperCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request4); // send sendMiceUpper->count
 	MPI_Isend(&upperCommArr[0][0], (sizeUpperCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request3); // send upperCommArr
-	MPI_Wait(&request3, &status5);
+	//MPI_Wait(&request3, &status5);
 	MPI_Isend(&sizeLowerCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request2); // send sendMiceLower->count
 	MPI_Isend(&lowerCommArr[0][0], (sizeLowerCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
-	MPI_Wait(&request1, &status6);
+	//MPI_Wait(&request1, &status6);
 
 	// MPI Ireceives
 	MPI_Irecv(&sizeLowerIncomingCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request5);
@@ -521,7 +521,7 @@ void * updateUniverse(void *s) {
 			communicateBetweenRanks();
 			printf("rank[%d] thread[%d] numMiceInRank[%d] after iteration[%d]\n", myRank, *t->myTID, mouseList->count, currDay);
 		}
-		
+
 		//printf("rank[%d] thread[%d] went over [%d] mice\n", myRank, *t->myTID, numMiceAccessed);
 	}
 	return NULL;
