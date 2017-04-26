@@ -261,7 +261,7 @@ void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay){ // mar
 	currMouse->tickDropOffDate = currDay + tickFeedingDays; // set the day the ticks should get dropped off
 }
 
-void moveMouse(mouse* currMouse, mouse_list * newMouseList){
+void moveMouse(mouse* currMouse){
 	int newXPos = currMouse->nextHome_x + currMouse->direction_x;
 	int newYPos = currMouse->nextHome_y + currMouse->direction_y;
 	//printf("rank[%d] newXPos[%d] rowLowerBound[%d] rowUpperBound[%d]\n", myRank, newXPos, rowLowerBound, rowUpperBound);
@@ -275,13 +275,16 @@ void moveMouse(mouse* currMouse, mouse_list * newMouseList){
 		currMouse->nextHome_x = universeSize - 1;
 	} else if(newXPos == universeSize){
 		currMouse->nextHome_x = 0;
-	}
+	} else
+		currMouse->nextHome_x = newXPos;
 	currMouse->nextHome_y = newYPos;
-	if(newXPos < rowLowerBound){
+	if(newXPos < rowLowerBound){ // if mouse must go to myRank - 1
 		//printf("rank[%d] newXPos[%d] rowLowerBound[%d]\n", myRank, newXPos, rowLowerBound);
+		//currMouse->nextHome_x = newXPos;
 		mouse_list_add_element(sendMiceLower, currMouse);
-	} else if(newXPos >= rowUpperBound){
-		
+	} else if(newXPos >= rowUpperBound){ // if mouse must go to myRank + 1
+		//currMouse->nextHome_x = newXPos;
+		//printf("GOING UP rank[%d] mouse[%d] newXPos[%d] rowLowerBound[%d]\n", myRank, currMouse->mouseUID, newXPos, rowLowerBound);
 		mouse_list_add_element(sendMiceUpper, currMouse);
 	} else{ // normal move
 		//reconstruct new nest queue and new mouse queue
@@ -321,11 +324,12 @@ void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay){
 
 int constructCommunicationArr(mouse_list * mList, int* commArr){
 	//commArr = (int**)malloc(mList->count*sizeof(int*));
-	int commArrSize = mList->count;
+	//int commArrSize = mList->count;
 	//printf("The size of the array we are creating is %d\n", commArrSize);
+	int i = 0;
 	if(mList->count > 0){
 		mouse* currMouse;
-		int i = 0;
+		
 		while((currMouse = pop_mouse_left(mList)) != NULL){
 			//commArr[i] = (int*)malloc(11*sizeof(int));
 			commArr[i] = currMouse->lifespan;
@@ -340,17 +344,24 @@ int constructCommunicationArr(mouse_list * mList, int* commArr){
 			commArr[i+9] = currMouse->direction_x;
 			commArr[i+10] = currMouse->direction_y;
 			commArr[i+11] = currMouse->mouseUID;
+			
+			//printf("rank[%d] mouse[%d][%d] i[%d]\n", myRank, currMouse->mouseUID, commArr[i+11], i);
 			i += 12;
 		}
 	}
 
-	return commArrSize;
+	return i;
+}
+
+void printMouse(mouse * m){
+	printf("rank[%d] mouse[%d] loc[%d, %d]\n", myRank, m->mouseUID, m->nextHome_x, m->nextHome_y);
 }
 
 void addExternalMiceToRank(int* commArr, int commArrSize){
 
 	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(commArr), (int)sizeof(int*));
-	for(int i = 0; i < commArrSize; i++){
+	//mouse_list * tempList = mouse_list_create();
+	for(int i = 0; i < commArrSize; i+=12){
 		mouse * newMouse = (mouse *)  malloc(sizeof(mouse));
 		//printf("rank[%d] commArr[%d] size[%d]\n", myRank, i, (int)(sizeof(commArr[i])/sizeof(int)));
 		newMouse->lifespan = commArr[i];
@@ -365,10 +376,10 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		newMouse->direction_x = commArr[i+9];
 		newMouse->direction_y = commArr[i+10];
 		newMouse->mouseUID = commArr[i+11];
-		i += 12;
-		printf("Did you get here?\n");
+		//i += 12;
+		//printf("LOCATIONS rank[%d] nextHome_x[%d] nextHome_y[%d]\n", myRank, newMouse->nextHome_x, newMouse->nextHome_y);
 		int x = newMouse->nextHome_x - rowLowerBound;
-		//printf("rank[%d] for incoming mouse[%d] x[%d]\n", myRank, i, x);
+		//printf("rank[%d] for incoming mouse[%d] uniLoc(%d, %d) x[%d] rowLowerBound[%d] rowUpperBound[%d]\n", myRank, newMouse->mouseUID, newMouse->nextHome_x, newMouse->nextHome_y, x, rowLowerBound, rowUpperBound);
 		mouse_list_add_element(universe[x][newMouse->nextHome_y]->miceInNest, newMouse);
 		newMouse->currentNest = universe[x][newMouse->nextHome_y]; // set mouse to nest backpointer
 		
@@ -378,15 +389,32 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		if (nest_list_contains_p(nestList, universe[x][newMouse->nextHome_y]) == 1) {
 			nest_list_add_element(nestList, universe[x][newMouse->nextHome_y]); // add the nest to the ranks nest list 
 		}
+		//mouse_list_add_element(tempList, newMouse);
 	}
-	free(commArr);
+	/*mouse * currMouse;
+	while((currMouse = pop_mouse_left(tempList)) != NULL){
+		//printf("LOCATIONS rank[%d] nextHome_x[%d] nextHome_y[%d]\n", myRank, newMouse->nextHome_x, newMouse->nextHome_y);
+		int x = currMouse->nextHome_x - rowLowerBound;
+		printf("rank[%d] for incoming mouse[%d] uniLoc(%d, %d) x[%d] rowLowerBound[%d] rowUpperBound[%d]\n", myRank, currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, x, rowLowerBound, rowUpperBound);
+		mouse_list_add_element(universe[x][currMouse->nextHome_y]->miceInNest, currMouse);
+		currMouse->currentNest = universe[x][currMouse->nextHome_y]; // set mouse to nest backpointer
+		
+		//Here is where all our dreams may die (<= fuckin sara...)
+		universe[x][currMouse->nextHome_y]->numMice++;
+		mouse_list_add_element(mouseList, currMouse); // add the mouse to the ranks mouse list
+		if (nest_list_contains_p(nestList, universe[x][currMouse->nextHome_y]) == 1) {
+			nest_list_add_element(nestList, universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
+		}
+	}*/
+	//mouse_list_free(tempList);
+	//free(commArr);
 }
 
 void communicateBetweenRanks(){
 	// prevRankID, nextRankID
 	// sendMiceUpper, sendMiceLower
 	int* lowerCommArr = NULL, * upperCommArr = NULL;
-	int* incomingLowerCommArr, * incomingUpperCommArr;
+	//int* incomingLowerCommArr, * incomingUpperCommArr;
 	int sizeLowerIncomingCommArr, sizeUpperIncomingCommArr;
 	lowerCommArr = (int*)malloc(sendMiceLower->count*12*sizeof(int));
 	upperCommArr = (int*)malloc(sendMiceUpper->count*12*sizeof(int*));
@@ -395,65 +423,40 @@ void communicateBetweenRanks(){
 	//MPI_Isend();
 	// we need to send the 2d arrays and the sizes of them (4 Isends, 4 Irecieves)
 	MPI_Request request1, request2, request3, request4, request5, request6, request7, request8;
-	MPI_Status status1, status2, status3, status4, status5, status6, status7, status8;
+	MPI_Status status1, status2, status3, status4;
 	//int sizeLowerCommArr = sendMiceLower->count * 11;
 	//int sizeUpperCommArr = sendMiceUpper->count * 11;
 
-	if(myRank == 0){
-		for(int i = 0; i < sizeLowerCommArr; i++){
-			int numElts = 0;
-			printf("rank[%d] lowerCommArr[%d] vals:", myRank, i);
-			for(int j = 0; j < 12; j++){
-				printf("[%d] ", lowerCommArr[i*12 + j]);
-				if(lowerCommArr[i*12 + j] >= -1)
-					numElts++;
-			}
-			printf("  -- numElts[%d]\n", numElts);
-			
-		}
-	}
-
 	//printf("rank[%d] OUTGOING sizeLowerCommArr[%d] sizeUpperCommArr[%d]\n", myRank, sizeLowerCommArr, sizeUpperCommArr);
 	MPI_Isend(&sizeUpperCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request4); // send sendMiceUpper->count
-	MPI_Isend(upperCommArr, (sizeUpperCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request3); // send upperCommArr
+	MPI_Isend(upperCommArr, sizeUpperCommArr, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request3); // send upperCommArr
 	//MPI_Wait(&request3, &status5);
 	MPI_Isend(&sizeLowerCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request2); // send sendMiceLower->count
-	MPI_Isend(lowerCommArr, (sizeLowerCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
+	MPI_Isend(lowerCommArr, sizeLowerCommArr, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
 	//MPI_Wait(&request1, &status6);
 
 	// MPI Ireceives
 	MPI_Irecv(&sizeLowerIncomingCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request5);
 	MPI_Wait(&request5, &status1);
 	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] \n", myRank, sizeLowerIncomingCommArr);
-	incomingLowerCommArr = (int*) malloc(sizeLowerIncomingCommArr*12*sizeof(int));
-	MPI_Irecv(incomingLowerCommArr, (sizeLowerIncomingCommArr*12), MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request6);
+	//incomingLowerCommArr = (int*) malloc(sizeLowerIncomingCommArr*sizeof(int));
+	int incomingLowerCommArr[sizeLowerIncomingCommArr];
+	MPI_Irecv(incomingLowerCommArr, sizeLowerIncomingCommArr, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request6);
 	MPI_Wait(&request6, &status2);
 
 	MPI_Irecv(&sizeUpperIncomingCommArr, 1, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request7);
 	MPI_Wait(&request7, &status3);
 	//printf("rank[%d] INCOMING sizeUpperIncomingCommArr[%d]\n", myRank, sizeUpperIncomingCommArr);
-	incomingUpperCommArr = (int*) malloc(sizeUpperIncomingCommArr*12*sizeof(int));
-	MPI_Irecv(incomingUpperCommArr, (sizeUpperIncomingCommArr*12), MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request8);
+	//incomingUpperCommArr = (int*) malloc(sizeUpperIncomingCommArr*sizeof(int));
+	int incomingUpperCommArr[sizeUpperIncomingCommArr];
+	MPI_Irecv(incomingUpperCommArr, sizeUpperIncomingCommArr, MPI_INT, nextRankID, 0, MPI_COMM_WORLD, &request8);
 	MPI_Wait(&request8, &status4);
-	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] sizeUpperIncomingCommArr[%d]\n", myRank, sizeLowerIncomingCommArr, sizeUpperIncomingCommArr);
+	int numIncommingMice = sizeof(incomingLowerCommArr) / sizeof(incomingLowerCommArr[0]);
+	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] numIncommingMice[%d]\n", myRank, sizeLowerIncomingCommArr, numIncommingMice);
 	//printf("rank[%d] commArr size[%d] sizeof(int*)[%d]\n", myRank, (int)sizeof(incomingLowerCommArr), (int)sizeof(int*));
-	
-	if(myRank == 3){
-		for(int i = 0; i < sizeUpperIncomingCommArr; i++){
-			int numElts = 0;
-			printf("rank[%d] sizeUpperIncomingCommArr[%d] vals:", myRank, i);
-			for(int j = 0; j < 12; j++){
-				printf("[%d] ", incomingUpperCommArr[i*12 + j]);
-				if(incomingUpperCommArr[i*12 + j] >= -1)
-					numElts++;
-			}
-			printf("  -- numElts[%d]\n", numElts);
-			
-		}
-	}
 
 	addExternalMiceToRank(incomingLowerCommArr, sizeLowerIncomingCommArr);
-	//addExternalMiceToRank(incomingUpperCommArr, sizeUpperIncomingCommArr);
+	addExternalMiceToRank(incomingUpperCommArr, sizeUpperIncomingCommArr);
 
 }
 
@@ -497,7 +500,7 @@ void * updateUniverse(void *s) {
 				currMouse->currentNest = NULL; // kill dat bitch
 				free(currMouse);
 			} else{ // else, make them move dat bitch
-				moveMouse(currMouse, newMouseList);
+				moveMouse(currMouse);
 			}
 		}
 		pthread_barrier_wait(&barrier);

@@ -5,6 +5,9 @@
 //Implementation of Custom mouse_list to be utilized as a linked list of mice within ranks
 //This implementation is also thread safe with the usage of a mutex lock per list
 
+
+
+
 mouse_list * mouse_list_create(){
   mouse_list *l = (mouse_list *) malloc(sizeof(mouse_list));
   l->count = 0;

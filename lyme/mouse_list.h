@@ -4,7 +4,6 @@
 #include <structs.h>
 
 
-
 mouse_list *mouse_list_create();
 void mouse_list_free(mouse_list *l);
 
