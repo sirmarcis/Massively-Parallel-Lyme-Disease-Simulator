@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 
 void readCommandLineArgs(int argc, char* argv[]){
 	
-	days = 3;
+	days = 5;
 	biteThreshold = .25;
 	pthreads = 0;
 	universeSize = 16;
@@ -209,7 +209,7 @@ void readCommandLineArgs(int argc, char* argv[]){
 	numMicePerNest = 5;
 	mouseLifespan = 100;
 	uninfectedNymph = 1000;
-	larvaSpawnDay = 90;
+	larvaSpawnDay = 3; //90;
 	numLarva = 1000;
 	//printf("rank[%d] numRowsPer[%d] \n", myRank, numRowsPer);
 
@@ -421,13 +421,27 @@ void communicateBetweenRanks(){
 
 }
 
+void addLarva(){
+	int trueRow = myRank * numRowsPer;
+	int bandStart = universeSize/2 - tickBand/2;
+	int bandEnd = universeSize/2 + tickBand/2;
+	int i=0;
+	int j=0;
+	for (i=0; i < numRowsPer; i++) {
+		for (j=0; j < universeSize; j++) {
+			if (trueRow % 4 == 0 && j >=bandStart && j < bandEnd) // then there must be larva in this cell
+				universe[i][j]->larva = numLarva;	
+		}
+		trueRow++;
+	}
+}
+
 void * updateUniverse(void *s) {
 	thread * t = s;
 	//printf("rank[%d] in thread[%d]\n", myRank, *t->myTID);
 	// go over all nests with mice (in parallel)
 	for(int currDay = 0; currDay < days; currDay++){
 		nest* currNest;
-		
 		while((currNest = pop_nest_left(nestList)) != NULL){ // go over all nests with mice (in parallel since we are in a thread)
 			//printf("rank[%d] thread[%d] on nest with [%d] mice\n",  myRank, *t->myTID, currNest->numMice);
 			mouse* currMouse;
@@ -476,8 +490,10 @@ void * updateUniverse(void *s) {
 				mouseList->count, sendMiceUpper->count, sendMiceLower->count);
 			communicateBetweenRanks();
 			printf("rank[%d] thread[%d] numMiceInRank[%d] after iteration[%d]\n", myRank, *t->myTID, mouseList->count, currDay);
+			if(currDay == larvaSpawnDay) // if its day zero and thread zero, break out the larva
+				addLarva();
 		}
-
+		pthread_barrier_wait(&barrier);
 		//printf("rank[%d] thread[%d] went over [%d] mice\n", myRank, *t->myTID, numMiceAccessed);
 	}
 	return NULL;
@@ -660,7 +676,7 @@ void initUniverse() {
 			}
 			
 		}
-	trueRow ++;
+		trueRow ++;
 	}
 	printf("rank[%d] totNumMice[%d] mouseList.count[%d] mouseUID_cntr[%d]\n", myRank, totNumMice, mouseList->count, mouseUID_cntr);
 }
