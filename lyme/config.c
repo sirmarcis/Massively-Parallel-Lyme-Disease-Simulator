@@ -1,12 +1,13 @@
 
 #include <config.h>
 
-config allConfigurations[1];
-int numConfigurations = 1;
+config allConfigurations[2];
+int numConfigurations = 2;
 
 void initConfigs(){
 	// INIT ALL CONFIGURATIONS HERE
 	config config0; // configuration 0 (current default)
+	config config1;
 
 	// INIT config0
 	config0.days = 1;
@@ -32,6 +33,31 @@ void initConfigs(){
 	config0.numLarva = 1000;
 
 	allConfigurations[0] = config0;
+
+	// INIT config1
+	config1.days = 1;
+	config1.biteThreshold = .25;
+	config1.universeSize =  16;
+	config1.miceTravelDays = 4;
+	config1.tickFeedingDays = 3;
+	config1.totalNumMouse = 9;
+	config1.totalNumDeer = 2;
+	config1.carryLarva = 10;
+	config1.carryNymph = 5;
+	config1.carryAdult = 2;
+	config1.tickBand = 2;
+	config1.pthreads = 2;
+	config1.mouseThreshold = 1;
+	config1.numRowsPer = universeSize / numRanks;
+	config1.rowLowerBound = numRowsPer * myRank;
+	config1.rowUpperBound = numRowsPer * (myRank+1);
+	config1.numMicePerNest = 5;
+	config1.mouseLifespan = 100;
+	config1.uninfectedNymph = 1000;
+	config1.larvaSpawnDay = 90;
+	config1.numLarva = 1000;
+
+	allConfigurations[1] = config1;
 }
 
 void useConfiguration(int configNum){
