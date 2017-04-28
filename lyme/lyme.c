@@ -71,6 +71,7 @@ mouse_list * newMouseList;						//list to transition mice from the end of the da
 mouse_list * sendMiceUpper;						//list containing mice that leave rank's area from the bottom
 mouse_list * sendMiceLower;						//list containing mice that leave rank's area from the top
 int mouseUID_cntr = 0;
+int maxFeedableMicePerNest;
 
 //Variables to check that the simulation is working
 int totMice;
@@ -217,26 +218,22 @@ void readCommandLineArgs(int argc, char* argv[]){
 	
 	// Larva should spawn on day 90.
 
-	days = 1;
-	biteThreshold = 1;
-	universeSize = 16;
-	miceTravelDays = 100;
+	days = 180;
+	biteThreshold = 0.5;
+	universeSize = 0; 		//set by command line
+	miceTravelDays = 5;
 	tickFeedingDays = 3;
 	carryLarva = 10;
 	carryNymph = 5;
 	carryAdult = 2;
-	tickBand = 8;
-	pthreads = 4;
+	pthreads = 1;			//set by command line
 	mouseThreshold = 1;
-	numRowsPer = universeSize / numRanks;
-	rowLowerBound = numRowsPer * myRank;
-	rowUpperBound = numRowsPer * (myRank+1);
-	numMicePerNest = 5;
+	numMicePerNest = 8;
 	mouseLifespan = 200;
-	uninfectedNymph = 300;
-	larvaSpawnDay = 50; 
-	numLarva = 300;
-
+	uninfectedNymph = 1000;
+	larvaSpawnDay = 90; 
+	numLarva = 1000;
+	maxFeedableMicePerNest = 5;
 
 	if(argc >= 3){ // order of arguments doesn't matter, and we do not require arguments
 		for(int currArg = 1; currArg < argc; currArg+=2){ 
@@ -255,6 +252,10 @@ void readCommandLineArgs(int argc, char* argv[]){
 		}
 	}
 
+	tickBand = universeSize * 0.25;
+	numRowsPer = universeSize / numRanks;
+	rowLowerBound = numRowsPer * myRank;
+	rowUpperBound = numRowsPer * (myRank+1);
 	//printf("configuration: pthreads per rank[%d] universeSize[%d]x[%d]\n", pthreads, universeSize, universeSize);
 }
 
@@ -512,7 +513,8 @@ void * updateUniverse(void *s) {
 						mouse_list_add_element(miceStillInNest, currMouse);
 					} else{ // send the rest packing, only mice that are leaving may be bit by ticks
 						currMouse->mustMove = 1;
-						currMouse->numDaysTraveled++;
+						if(mouseCntr > maxFeedableMicePerNest)
+							currMouse->numDaysTraveled++;
 						computeTickBiteMouse(currMouse, currNest, currDay); // process if this mouse get bit by ticks
 					}
 					mouseCntr++;
@@ -525,7 +527,7 @@ void * updateUniverse(void *s) {
 			currNest->numMice = currNest->miceInNest->count;
 		}
 
-		if (*t->myTID == 0) printf("rank [%d] has [%d] mice in mouseList at iteration [%d]\n", myRank, mouseList->count, currDay);
+		//if (*t->myTID == 0) printf("rank [%d] has [%d] mice in mouseList at iteration [%d]\n", myRank, mouseList->count, currDay);
 		pthread_barrier_wait(&barrier);
 
 		//if (*t->myTID == 0) printf("rank [%d] has finished processing nests for iteration [%d]\n", myRank, currDay);
@@ -556,8 +558,8 @@ void * updateUniverse(void *s) {
 			newMouseList = NULL; // simple sara...
 			newMouseList = mouse_list_create();
 
-			printf("rank[%d] thread[%d] has [%d] mice, sending [%d] mice for iteration [%d]\n", myRank, *t->myTID,
-				mouseList->count, sendMiceUpper->count + sendMiceLower->count, currDay);
+			// printf("rank[%d] thread[%d] has [%d] mice, sending [%d] mice for iteration [%d]\n", myRank, *t->myTID,
+			// 	mouseList->count, sendMiceUpper->count + sendMiceLower->count, currDay);
 			// printf("rank[%d] thread[%d] has [%d] mice, sending [%d] upper, sending [%d] mice lower for iteration [%d]\n", myRank, *t->myTID,
 			// 	mouseList->count, sendMiceUpper->count, sendMiceLower->count, currDay);
 			communicateBetweenRanks(currDay);
@@ -758,7 +760,7 @@ void initUniverse() {
 		}
 		trueRow ++;
 	}
-	printf("rank[%d] totNumMice[%d] mouseList.count[%d] mouseUID_cntr[%d]\n", myRank, totNumMice, mouseList->count, mouseUID_cntr);
+	//printf("rank[%d] totNumMice[%d] mouseList.count[%d] mouseUID_cntr[%d]\n", myRank, totNumMice, mouseList->count, mouseUID_cntr);
 }
 
 void printBoard() {
