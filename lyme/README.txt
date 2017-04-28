@@ -6,3 +6,11 @@ To compile:
 	(BGQ need to run: '$ module load xl')
 To run:
 	'$ mpirun --np [# MPI ranks] ./lyme --pthreads [number of threads per rank] --universeSize [size of the entire universe]'
+
+
+Scaling Tests (run each set of tests with only ONE compute node):
+
+Nick: 4096x4096
+Sara: 2048x2048
+Anders: 1024x1024
+Anthony: 256x256
