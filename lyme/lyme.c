@@ -159,28 +159,28 @@ int main(int argc, char* argv[])
 	}
 
 //Frees
-	mouse_list_free(mouseList);
-	// remember to free all mouse lists in nest structs as well (didn't work on first attempt)
-	//nest* currNest;
-	//while((currNest = pop_nest_left(nestList)) != NULL){
-	//	if(currNest->numMice > 0)
-	//		mouse_list_free(currNest->miceInNest);
-	//}
-	nest_list_free(nestList);
-	for(int i = 0; i < numRowsPer; i++){
-		for(int j = 0; j < universeSize; j++){
-			pthread_mutex_destroy(&(universe[i][j]->mutex));
-			mouse* currMouse;
-			if(universe[i][j]->numMice > 0){
-				while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
-					currMouse->currentNest = NULL;
-					free(currMouse);
-				}
-				mouse_list_free(universe[i][j]->miceInNest);
-			}
-			free(universe[i][j]);
-		}
-	}
+	// mouse_list_free(mouseList);
+	// // remember to free all mouse lists in nest structs as well (didn't work on first attempt)
+	// //nest* currNest;
+	// //while((currNest = pop_nest_left(nestList)) != NULL){
+	// //	if(currNest->numMice > 0)
+	// //		mouse_list_free(currNest->miceInNest);
+	// //}
+	// nest_list_free(nestList);
+	// for(int i = 0; i < numRowsPer; i++){
+	// 	for(int j = 0; j < universeSize; j++){
+	// 		pthread_mutex_destroy(&(universe[i][j]->mutex));
+	// 		mouse* currMouse;
+	// 		if(universe[i][j]->numMice > 0){
+	// 			while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
+	// 				currMouse->currentNest = NULL;
+	// 				free(currMouse);
+	// 			}
+	// 			mouse_list_free(universe[i][j]->miceInNest);
+	// 		}
+	// 		free(universe[i][j]);
+	// 	}
+	// }
 
 	MPI_Barrier( MPI_COMM_WORLD );
 	MPI_Finalize();
@@ -294,11 +294,13 @@ void moveMouse(mouse* currMouse){
 		currMouse->currentNest = universe[x][currMouse->nextHome_y]; // set mouse to nest backpointer
 		
 		//Here is where all our dreams may die (<= fuckin sara...)
+		pthread_mutex_lock(&(universe[x][currMouse->nextHome_y]->mutex)); // safety
 		universe[x][currMouse->nextHome_y]->numMice++;
 		mouse_list_add_element(newMouseList, currMouse); // add the mouse to the ranks mouse list
 		if (nest_list_contains_p(nestList, universe[x][currMouse->nextHome_y]) == 1) {
 			nest_list_add_element(nestList, universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
 		}
+		pthread_mutex_unlock(&(universe[x][currMouse->nextHome_y]->mutex)); // safety
 	}
 }
 
@@ -378,7 +380,9 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 	
 }
 
-void communicateBetweenRanks(){
+void communicateBetweenRanks(int currDay){
+
+	printf("rank [%d] is ready to communicate for iteration [%d]\n", myRank, currDay);
 	int* lowerCommArr = NULL, * upperCommArr = NULL;
 	//int* incomingLowerCommArr, * incomingUpperCommArr;
 	int sizeLowerIncomingCommArr, sizeUpperIncomingCommArr;
@@ -399,9 +403,14 @@ void communicateBetweenRanks(){
 	MPI_Isend(lowerCommArr, sizeLowerCommArr, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request1); // send lowerCommArr
 	//MPI_Wait(&request1, &status6);
 
+	printf("rank [%d] has sent its mice for iteration [%d]\n", myRank, currDay);
+
 	// MPI Ireceives
 	MPI_Irecv(&sizeLowerIncomingCommArr, 1, MPI_INT, prevRankID, 0, MPI_COMM_WORLD, &request5);
 	MPI_Wait(&request5, &status1);
+
+	printf("rank [%d] has received first set of mice for iteration [%d]\n", myRank, currDay);
+
 	//printf("rank[%d] INCOMING sizeLowerIncomingCommArr[%d] \n", myRank, sizeLowerIncomingCommArr);
 	//incomingLowerCommArr = (int*) malloc(sizeLowerIncomingCommArr*sizeof(int));
 	int incomingLowerCommArr[sizeLowerIncomingCommArr];
@@ -443,12 +452,12 @@ void * updateUniverse(void *s) {
 	for(int currDay = 0; currDay < days; currDay++){
 		nest* currNest;
 		while((currNest = pop_nest_left(nestList)) != NULL){ // go over all nests with mice (in parallel since we are in a thread)
-			//printf("rank[%d] thread[%d] on nest with [%d] mice\n",  myRank, *t->myTID, currNest->numMice);
+			//printf("rank[%d] thread[%d] processing nest at [(%d,%d)] with [%d] mice\n",  myRank, *t->myTID, currNest->i, currNest->j, currNest->numMice);
 			mouse* currMouse;
 			int mouseCntr = 0;
 			mouse_list * miceStillInNest = mouse_list_create();
 			while((currMouse = pop_mouse_left(currNest->miceInNest)) != NULL){ // go over all mice in current nest
-				if(currMouse->lifespan < currDay && currMouse->numDaysTraveled < miceTravelDays){ // if the mouse's time isn't up...	
+				if(currMouse->lifespan > currDay && currMouse->numDaysTraveled < miceTravelDays){ // if the mouse's time isn't up...	
 					computeTickDropoffMouse(currMouse, currNest, currDay); // process ticks dropping off incoming mice
 					// process if this mouse needs to move
 					if(mouseCntr < mouseThreshold){ // the first mouse may stay in the nest
@@ -462,11 +471,15 @@ void * updateUniverse(void *s) {
 					mouseCntr++;
 				}
 			}
-			mouse_list_free(currNest->miceInNest);
+			mouse_list * temp = currNest->miceInNest;
 			currNest->miceInNest = miceStillInNest;
+			mouse_list_free(temp);
+			temp = NULL;
 			currNest->numMice = currNest->miceInNest->count;
 		}
+
 		pthread_barrier_wait(&barrier);
+		if (*t->myTID == 0) printf("rank [%d] has finished processing nests for iteration [%d]\n", myRank, currDay);
 		// go over all mice in queue (in parallel)
 		mouse* currMouse;
 		while((currMouse = pop_mouse_left(mouseList)) != NULL){
@@ -479,6 +492,8 @@ void * updateUniverse(void *s) {
 			}
 		}
 		pthread_barrier_wait(&barrier);
+		if (*t->myTID == 0) printf("rank [%d] has finished processing mice for iteration [%d]\n", myRank, currDay);
+
 		//printf("rank[%d] thread[%d] after second barrier\n",  myRank, *t->myTID);
 		if(*t->myTID == 0){ // only allow thread 0 to do MPI communication
 			mouse_list_free(mouseList);
@@ -486,13 +501,14 @@ void * updateUniverse(void *s) {
 			newMouseList = NULL; // simple sara...
 			newMouseList = mouse_list_create();
 			//newMouseList = NULL;
-			printf("rank[%d] thread[%d] has [%d] mice, sending [%d] upper, sending [%d] mice lower\n", myRank, *t->myTID,
-				mouseList->count, sendMiceUpper->count, sendMiceLower->count);
-			communicateBetweenRanks();
+			printf("rank[%d] thread[%d] has [%d] mice, sending [%d] upper, sending [%d] mice lower for iteration [%d]\n", myRank, *t->myTID,
+				mouseList->count, sendMiceUpper->count, sendMiceLower->count, currDay);
+			communicateBetweenRanks(currDay);
 			printf("rank[%d] thread[%d] numMiceInRank[%d] after iteration[%d]\n", myRank, *t->myTID, mouseList->count, currDay);
 			if(currDay == larvaSpawnDay) // if its day zero and thread zero, break out the larva
 				addLarva();
 		}
+
 		pthread_barrier_wait(&barrier);
 		//printf("rank[%d] thread[%d] went over [%d] mice\n", myRank, *t->myTID, numMiceAccessed);
 	}
