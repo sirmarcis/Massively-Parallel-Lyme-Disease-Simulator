@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 			pthread_mutex_destroy(&(universe[i][j]->mutex));
 			mouse* currMouse;
 			if (universe[i][j]->numMice > 0){
-				printf("rank[%d] pop_mouse_left 3\n", myRank);
+				//printf("rank[%d] pop_mouse_left 3\n", myRank);
 				while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
 					//printf("freeing mouse [%d] which lives in location [(%d,%d)] and should be in nest [(%d,%d)]\n", currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, currMouse->currentNest->i, currMouse->currentNest->j);
 					totMiceEndingInNest ++;
@@ -365,9 +365,9 @@ void moveMouse(mouse* currMouse){
 			pthread_mutex_lock(&nestListArrCountMutex); // ensure that 2 threads cannot add this nest back at the same time
 			int nestIndex = nestListArrCount % pthreads;
 			nestListArrCount++;
-			pthread_mutex_unlock(&nestListArrCountMutex);
 			universe[x][currMouse->nextHome_y]->inANestList = 1;
 			nest_list_add_element(nestListArr[nestIndex], universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
+			pthread_mutex_unlock(&nestListArrCountMutex);
 		}
 		pthread_mutex_unlock(&(universe[x][currMouse->nextHome_y]->mutex)); // safety
 
@@ -376,8 +376,9 @@ void moveMouse(mouse* currMouse){
 		pthread_mutex_lock(&newMouseListArrCountMutex);
 		int newMouseIndex = newMouseListArrCount % pthreads;
 		newMouseListArrCount++;
-		pthread_mutex_unlock(&newMouseListArrCountMutex);
+		
 		mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
+		pthread_mutex_unlock(&newMouseListArrCountMutex);
 	}
 }
 
@@ -414,7 +415,7 @@ int constructCommunicationArr(mouse_list * mList, int* commArr){
 	int i = 0;
 	if(mList->count > 0){
 		mouse* currMouse;
-		printf("rank[%d] pop_mouse_left 4\n", myRank);
+		//printf("rank[%d] pop_mouse_left 4\n", myRank);
 		while((currMouse = pop_mouse_left(mList)) != NULL){
 			commArr[i] = currMouse->lifespan;
 			commArr[i+1] = currMouse->numDaysTraveled;
@@ -464,9 +465,10 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 			pthread_mutex_lock(&nestListArrCountMutex); // ensure that 2 threads cannot add this nest back at the same time
 			int nestIndex = nestListArrCount % pthreads;
 			nestListArrCount++;
+			nest_list_add_element(nestListArr[nestIndex], universe[x][newMouse->nextHome_y]); // add the nest to the ranks nest list
 			pthread_mutex_unlock(&nestListArrCountMutex);
 			universe[x][newMouse->nextHome_y]->inANestList = 1;
-			nest_list_add_element(nestListArr[nestIndex], universe[x][newMouse->nextHome_y]); // add the nest to the ranks nest list 
+			 
 		}
 		pthread_mutex_unlock(&(universe[x][newMouse->nextHome_y]->mutex)); // safety
 		newMouse->currentNest = universe[x][newMouse->nextHome_y]; // set mouse to nest backpointer
@@ -474,9 +476,9 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		pthread_mutex_lock(&mouseListArrCountMutex);
 		int mouseIndex = mouseListArrCount % pthreads;
 		mouseListArrCount++;
-		pthread_mutex_unlock(&mouseListArrCountMutex);
 
 		mouse_list_add_element(mouseListArr[mouseIndex], newMouse); // add the mouse to the ranks mouse list
+		pthread_mutex_unlock(&mouseListArrCountMutex);
 	}
 }
 
@@ -563,7 +565,7 @@ void * updateUniverse(void *s) {
 			mouse* currMouse;
 			int mouseCntr = 0;
 			mouse_list * miceStillInNest = mouse_list_create();
-			printf("rank[%d] pop_mouse_left 1\n", myRank);
+			//printf("rank[%d] pop_mouse_left 1\n", myRank);
 			while((currMouse = pop_mouse_left(currNest->miceInNest)) != NULL){ // go over all mice in current nest
 				if(currMouse->lifespan > currDay && currMouse->numDaysTraveled < miceTravelDays){ // if the mouse's time isn't up...	
 					computeTickDropoffMouse(currMouse, currNest, currDay); // process ticks dropping off incoming mice
@@ -595,11 +597,13 @@ void * updateUniverse(void *s) {
 		//if (*t->myTID == 0) printf("rank [%d] has finished processing nests for iteration [%d]\n", myRank, currDay);
 		// go over all mice in queue (in parallel)
 		mouse* currMouse;
-		printf("rank[%d] thread[%d] iter[%d] mouseListArr.size[%d] mouseListArrCount[%d] pop_mouse_left 2 \n", myRank, *t->myTID, currDay, mouseListArr[*t->myTID]->count, mouseListArrCount);
-		int numMiceProcessed = 0;
+		//printf("rank[%d] thread[%d] iter[%d] mouseListArr.size[%d] mouseListArrCount[%d] pop_mouse_left 2 \n", myRank, *t->myTID, currDay, mouseListArr[*t->myTID]->count, mouseListArrCount);
 		while((currMouse = pop_mouse_left(mouseListArr[*t->myTID])) != NULL){
 			//printf("rank[%d] thread[%d] on mouse[%d] loc[%d][%d]\n",  myRank, *t->myTID, currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y); // currMouse->mouseUID
-			printf("rank[%d] thread[%d] iter[%d] mouseUID[%d] numMiceProcessed[%d] miceLeft [%d]\n", myRank, *t->myTID, currDay, currMouse->mouseUID, numMiceProcessed, mouseListArr[*t->myTID]->count);
+			//printf("rank[%d] thread[%d] iter[%d] mouseUID[%d] numMiceProcessed[%d] miceLeft [%d]\n", myRank, *t->myTID, currDay, currMouse->mouseUID, numMiceProcessed, mouseListArr[*t->myTID]->count);
+			//printf("rank[%d] thread[%d] iter[%d] mouseUID[%d] mouseLoc(%d, %d) its nest Loc(%d, %d)\n", 
+			//	myRank, *t->myTID, currDay, currMouse->mouseUID,
+			//	currMouse->nextHome_x, currMouse->nextHome_y, currMouse->currentNest->i, currMouse->currentNest->j);
 			if(currMouse->lifespan == currDay){ // if the mouse's time is up...
 				currMouse->currentNest = NULL; // mouse dies
 				free(currMouse);
@@ -612,10 +616,9 @@ void * updateUniverse(void *s) {
 				pthread_mutex_lock(&newMouseListArrCountMutex); // lock the counter
 				int newMouseIndex = newMouseListArrCount % pthreads;
 				newMouseListArrCount++;
-				pthread_mutex_unlock(&newMouseListArrCountMutex);
 				mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
+				pthread_mutex_unlock(&newMouseListArrCountMutex);
 			}
-			numMiceProcessed++;
 		}
 
 

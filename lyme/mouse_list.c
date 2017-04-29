@@ -21,7 +21,6 @@ void mouse_list_free(mouse_list * l){
   mouseNode *li, *tmp;
 
   //pthread_mutex_lock(&(l->mutex));
-
   if (l != NULL) {
     li = l->head;
     while (li != NULL) {
@@ -68,8 +67,6 @@ mouse * pop_mouse_left(mouse_list *l){
     //Reassign the head to the current heads' next element
     l->head = temp2->next;
     //Reassign the previous of the new head to the tail
-    if(l->head == NULL)
-      printf("IT IS ABOUT TO BREAK\n");
     l->head->prev = NULL;
     l->count--;
     temp2->next = NULL;
