@@ -68,6 +68,8 @@ mouse * pop_mouse_left(mouse_list *l){
     //Reassign the head to the current heads' next element
     l->head = temp2->next;
     //Reassign the previous of the new head to the tail
+    if(l->head == NULL)
+      printf("IT IS ABOUT TO BREAK\n");
     l->head->prev = NULL;
     l->count--;
     temp2->next = NULL;

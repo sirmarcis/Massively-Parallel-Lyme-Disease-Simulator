@@ -206,6 +206,7 @@ int main(int argc, char* argv[])
 			pthread_mutex_destroy(&(universe[i][j]->mutex));
 			mouse* currMouse;
 			if (universe[i][j]->numMice > 0){
+				printf("rank[%d] pop_mouse_left 3\n", myRank);
 				while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
 					//printf("freeing mouse [%d] which lives in location [(%d,%d)] and should be in nest [(%d,%d)]\n", currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, currMouse->currentNest->i, currMouse->currentNest->j);
 					totMiceEndingInNest ++;
@@ -413,6 +414,7 @@ int constructCommunicationArr(mouse_list * mList, int* commArr){
 	int i = 0;
 	if(mList->count > 0){
 		mouse* currMouse;
+		printf("rank[%d] pop_mouse_left 4\n", myRank);
 		while((currMouse = pop_mouse_left(mList)) != NULL){
 			commArr[i] = currMouse->lifespan;
 			commArr[i+1] = currMouse->numDaysTraveled;
@@ -470,10 +472,11 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		newMouse->currentNest = universe[x][newMouse->nextHome_y]; // set mouse to nest backpointer
 
 		pthread_mutex_lock(&mouseListArrCountMutex);
-		int newMouseIndex = mouseListArrCount % pthreads;
+		int mouseIndex = mouseListArrCount % pthreads;
 		mouseListArrCount++;
 		pthread_mutex_unlock(&mouseListArrCountMutex);
-		mouse_list_add_element(mouseListArr[newMouseIndex], newMouse); // add the mouse to the ranks mouse list
+
+		mouse_list_add_element(mouseListArr[mouseIndex], newMouse); // add the mouse to the ranks mouse list
 	}
 }
 
@@ -560,6 +563,7 @@ void * updateUniverse(void *s) {
 			mouse* currMouse;
 			int mouseCntr = 0;
 			mouse_list * miceStillInNest = mouse_list_create();
+			printf("rank[%d] pop_mouse_left 1\n", myRank);
 			while((currMouse = pop_mouse_left(currNest->miceInNest)) != NULL){ // go over all mice in current nest
 				if(currMouse->lifespan > currDay && currMouse->numDaysTraveled < miceTravelDays){ // if the mouse's time isn't up...	
 					computeTickDropoffMouse(currMouse, currNest, currDay); // process ticks dropping off incoming mice
@@ -591,12 +595,15 @@ void * updateUniverse(void *s) {
 		//if (*t->myTID == 0) printf("rank [%d] has finished processing nests for iteration [%d]\n", myRank, currDay);
 		// go over all mice in queue (in parallel)
 		mouse* currMouse;
+		printf("rank[%d] thread[%d] iter[%d] mouseListArr.size[%d] mouseListArrCount[%d] pop_mouse_left 2 \n", myRank, *t->myTID, currDay, mouseListArr[*t->myTID]->count, mouseListArrCount);
+		int numMiceProcessed = 0;
 		while((currMouse = pop_mouse_left(mouseListArr[*t->myTID])) != NULL){
 			//printf("rank[%d] thread[%d] on mouse[%d] loc[%d][%d]\n",  myRank, *t->myTID, currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y); // currMouse->mouseUID
+			printf("rank[%d] thread[%d] iter[%d] mouseUID[%d] numMiceProcessed[%d] miceLeft [%d]\n", myRank, *t->myTID, currDay, currMouse->mouseUID, numMiceProcessed, mouseListArr[*t->myTID]->count);
 			if(currMouse->lifespan == currDay){ // if the mouse's time is up...
 				currMouse->currentNest = NULL; // mouse dies
 				free(currMouse);
-				printf("Losing mouse\n");
+				//printf("Losing mouse\n");
 			} else if (currMouse->mustMove == 1) { // else, mouse moves
 				moveMouse(currMouse);
 			}
@@ -608,11 +615,12 @@ void * updateUniverse(void *s) {
 				pthread_mutex_unlock(&newMouseListArrCountMutex);
 				mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
 			}
+			numMiceProcessed++;
 		}
 
-		mouse_list_free(mouseListArr[*t->myTID]); // free the current threads list ASAP
 
 		pthread_barrier_wait(&barrier); // set each threads mouse list for the nest iteration 
+		mouse_list_free(mouseListArr[*t->myTID]); // free the current threads list ASAP
 		mouseListArr[*t->myTID] = newMouseListArr[*t->myTID];
 		newMouseListArr[*t->myTID] = NULL;
 		newMouseListArr[*t->myTID] = mouse_list_create();
@@ -623,6 +631,7 @@ void * updateUniverse(void *s) {
 			// 	mouseList->count, sendMiceUpper->count + sendMiceLower->count, currDay);
 			// printf("rank[%d] thread[%d] has [%d] mice, sending [%d] upper, sending [%d] mice lower for iteration [%d]\n", myRank, *t->myTID,
 			// 	mouseList->count, sendMiceUpper->count, sendMiceLower->count, currDay);
+			
 			mouseListArrCount = newMouseListArrCount;
 			newMouseListArrCount = 0;
 			communicateBetweenRanks(currDay);
