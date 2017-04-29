@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 	
 // Init 16,384 RNG streams - each rank has an independent stream
 	InitDefault();
-	initConfigs();
+	//initConfigs();
 	
 	MPI_Barrier( MPI_COMM_WORLD );
 
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
 
 //Initialize universe with ticks, mice, and deer
 	initUniverse();
-	printBoard();
+	//printBoard();
 
 // Start timing
 	double start = 0;
@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 		printf("Time taken: %lf s\n", end - start);
 	}
 
-	printBoard();
+	//printBoard();
 
 // Frees
 	totMiceInList = mouseList->count;
