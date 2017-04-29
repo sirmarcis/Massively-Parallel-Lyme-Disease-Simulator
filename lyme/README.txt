@@ -7,6 +7,8 @@ To compile:
 To run:
 	'$ mpirun --np [# MPI ranks] ./lyme --pthreads [number of threads per rank] --universeSize [size of the entire universe]'
 
+To run a batch on BGQ:
+	'$ sbatch --partition small -t 240 -N4 ./run_anders_tests.sh'
 
 Scaling Tests (run each set of tests with only ONE compute node):
 
