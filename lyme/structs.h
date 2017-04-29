@@ -32,6 +32,7 @@ struct nestInfo {
 	pthread_mutex_t mutex;		 // mutex for the nest
 	int i;						 // x and y location of the cell based on total board
 	int j;
+	int inANestList;             // is 1 when in a nest list, 0 otherwise
 };
 
 /* Struct for mouse object */
