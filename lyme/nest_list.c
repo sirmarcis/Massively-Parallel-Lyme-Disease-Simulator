@@ -9,14 +9,14 @@ nest_list * nest_list_create(){
   l->count = 0;
   l->head = NULL;
   l->tail = NULL;
-  pthread_mutex_init(&(l->mutex), NULL);
+  //pthread_mutex_init(&(l->mutex), NULL);
   return l;
 }
 
 void nest_list_free(nest_list * l){
   nestNode *li, *tmp;
 
-  pthread_mutex_lock(&(l->mutex));
+  //pthread_mutex_lock(&(l->mutex));
 
   if (l != NULL) {
     li = l->head;
@@ -27,8 +27,8 @@ void nest_list_free(nest_list * l){
     }
   }
 
-  pthread_mutex_unlock(&(l->mutex));
-  pthread_mutex_destroy(&(l->mutex));
+  //pthread_mutex_unlock(&(l->mutex));
+  //pthread_mutex_destroy(&(l->mutex));
   free(l);
 }
 
@@ -45,7 +45,7 @@ int nest_list_contains_p(nest_list *l, nest *li){
 }
 
 nest * nest_list_add_element(nest_list *l, nest *li){
-  pthread_mutex_lock(&(l->mutex));
+  //pthread_mutex_lock(&(l->mutex));
   nestNode * newNode = (nestNode *) malloc(sizeof(nestNode));
   newNode->next = NULL;
   newNode->prev = l->tail;
@@ -60,13 +60,13 @@ nest * nest_list_add_element(nest_list *l, nest *li){
   }
   l->count++;
 
-  pthread_mutex_unlock(&(l->mutex));
+  //pthread_mutex_unlock(&(l->mutex));
 
   return li;
 }
 
 nest * pop_nest_left(nest_list *l){
-  pthread_mutex_lock(&(l->mutex));
+  //pthread_mutex_lock(&(l->mutex));
   // 3 or more case
   if(l->count > 2){
     //Save current head nest
@@ -80,7 +80,7 @@ nest * pop_nest_left(nest_list *l){
     temp2->next = NULL;
     temp2->prev = NULL;
     free(temp2);
-    pthread_mutex_unlock(&(l->mutex));
+    //pthread_mutex_unlock(&(l->mutex));
     
     return temp;
   }
@@ -98,7 +98,7 @@ nest * pop_nest_left(nest_list *l){
     temp2->next = NULL;
     temp2->prev = NULL;
     free(temp2);
-    pthread_mutex_unlock(&(l->mutex));
+    //pthread_mutex_unlock(&(l->mutex));
     return temp;
   }
   else if(l->count == 1){
@@ -110,12 +110,12 @@ nest * pop_nest_left(nest_list *l){
     temp2->next = NULL;
     temp2->prev = NULL;
     free(temp2);
-    pthread_mutex_unlock(&(l->mutex));
+    //pthread_mutex_unlock(&(l->mutex));
     return temp;
   }
   else{
     //printf("Can't pop from an empty list\n");
-    pthread_mutex_unlock(&(l->mutex));
+    //pthread_mutex_unlock(&(l->mutex));
     return NULL;
   }
 }
