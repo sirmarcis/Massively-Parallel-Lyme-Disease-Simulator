@@ -10,6 +10,9 @@ To run:
 To run a batch on BGQ:
 	'$ sbatch --partition small -t 240 -N4 ./run_anders_tests.sh'
 
+To run anders batch (2048, 16 Compute nodes):
+	'$ sbatch --partition small -t 240 -N64 ./run_strong_scaling_2048.sh'
+
 Scaling Tests (run each set of tests with only ONE compute node):
 
 Nick: 4096x4096
