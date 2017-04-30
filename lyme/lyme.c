@@ -99,7 +99,7 @@ int stillCarrying = 0;
 void initUniverse();
 void initLists();
 void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay);
-void moveMouse(mouse* currMouse);
+void moveMouse(mouse* currMouse, int currThread);
 void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay);
 int constructCommunicationArr(mouse_list * mList, int* commArr);
 void addExternalMiceToRank(int* commArr, int commArrSize);
@@ -328,7 +328,7 @@ void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay){
 /*This function computes where a mouse should move next based on it's x and y direction. If the mouse leaves the rank's area
  from the bottom, it is sent to the next rank (myRank + 1) and if it is leaves from the top, it sent to the previous rank (myRank -1).
  If it stays within the rank's area, it gets moved.*/
-void moveMouse(mouse* currMouse){
+void moveMouse(mouse* currMouse, int currThread){
 	int newXPos = currMouse->nextHome_x + currMouse->direction_x;
 	int newYPos = currMouse->nextHome_y + currMouse->direction_y;
 	
@@ -362,23 +362,25 @@ void moveMouse(mouse* currMouse){
 		mouse_list_add_element(universe[x][currMouse->nextHome_y]->miceInNest, currMouse); // add mouse to new nest
 		universe[x][currMouse->nextHome_y]->numMice++; // nestListArrCount
 		if (universe[x][currMouse->nextHome_y]->inANestList != 1) { // if the nest hasn't been added to any nest list, add it to the nest threads nest list
-			pthread_mutex_lock(&nestListArrCountMutex); // ensure that 2 threads cannot add this nest back at the same time
-			int nestIndex = nestListArrCount % pthreads;
-			nestListArrCount++;
+			//pthread_mutex_lock(&nestListArrCountMutex); // ensure that 2 threads cannot add this nest back at the same time
+			//int nestIndex = nestListArrCount % pthreads;
+			//nestListArrCount++;
 			universe[x][currMouse->nextHome_y]->inANestList = 1;
-			nest_list_add_element(nestListArr[nestIndex], universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
-			pthread_mutex_unlock(&nestListArrCountMutex);
+			//nest_list_add_element(nestListArr[nestIndex], universe[x][currMouse->nextHome_y]); // add the nest to the ranks nest list 
+			nest_list_add_element(nestListArr[currThread], universe[x][currMouse->nextHome_y]);
+			//pthread_mutex_unlock(&nestListArrCountMutex);
 		}
 		pthread_mutex_unlock(&(universe[x][currMouse->nextHome_y]->mutex)); // safety
 
 		currMouse->currentNest = universe[x][currMouse->nextHome_y]; // set mouse to nest backpointer
 
-		pthread_mutex_lock(&newMouseListArrCountMutex);
-		int newMouseIndex = newMouseListArrCount % pthreads;
-		newMouseListArrCount++;
+		//pthread_mutex_lock(&newMouseListArrCountMutex);
+		//int newMouseIndex = newMouseListArrCount % pthreads;
+		//newMouseListArrCount++;
 		
-		mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
-		pthread_mutex_unlock(&newMouseListArrCountMutex);
+		//mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
+		mouse_list_add_element(newMouseListArr[currThread], currMouse); // add the mouse to the ranks mouse list
+		//pthread_mutex_unlock(&newMouseListArrCountMutex);
 	}
 }
 
@@ -609,15 +611,16 @@ void * updateUniverse(void *s) {
 				free(currMouse);
 				//printf("Losing mouse\n");
 			} else if (currMouse->mustMove == 1) { // else, mouse moves
-				moveMouse(currMouse);
+				moveMouse(currMouse, *t->myTID);
 			}
 			else if (currMouse->mustMove == 0) {	//if not moving, still add to mouseList
 				//mouse_list_add_element(newMouseList, currMouse);
-				pthread_mutex_lock(&newMouseListArrCountMutex); // lock the counter
-				int newMouseIndex = newMouseListArrCount % pthreads;
-				newMouseListArrCount++;
-				mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
-				pthread_mutex_unlock(&newMouseListArrCountMutex);
+				//pthread_mutex_lock(&newMouseListArrCountMutex); // lock the counter
+				//int newMouseIndex = newMouseListArrCount % pthreads;
+				//newMouseListArrCount++;
+				//mouse_list_add_element(newMouseListArr[newMouseIndex], currMouse); // add the mouse to the ranks mouse list
+				//pthread_mutex_unlock(&newMouseListArrCountMutex);
+				mouse_list_add_element(newMouseListArr[*t->myTID], currMouse);
 			}
 		}
 
