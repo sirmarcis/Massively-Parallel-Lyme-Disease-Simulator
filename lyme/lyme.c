@@ -20,7 +20,7 @@
 #include <structs.h>
 #include <mouse_list.h>
 #include <nest_list.h>
-//#include<hwi/include/bqc/A2_inlines.h>
+#include <hwi/include/bqc/A2_inlines.h>
 
 
 
@@ -88,8 +88,9 @@ pthread_mutex_t nestListArrCountMutex, mouseListArrCountMutex, newMouseListArrCo
 
 int mouseUID_cntr = 0;
 int maxFeedableMicePerNest;
-double rankCommunicationTime = 0;
+unsigned long long rankCommunicationTime = 0;
 int bgClock = 1600000000;
+unsigned long long maxRankCommunicationTime = 0;
 
 
 /***************************************************************************/
@@ -174,14 +175,14 @@ int main(int argc, char* argv[])
 // Sync back all ranks
 	MPI_Barrier( MPI_COMM_WORLD );
 
-	double maxRankCommunicationTime = 0;
-	MPI_Allreduce(&rankCommunicationTime, &maxRankCommunicationTime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	
+	MPI_Allreduce(&rankCommunicationTime, &maxRankCommunicationTime, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
 
 // End timing
 	if (myRank == 0)  {
 		end = MPI_Wtime();
 		printf("Time taken: %lf s\n", end - start);
-		printf("Rank communication took: %lf s\n", maxRankCommunicationTime);
+		printf("Rank communication took: %f s\n", ((float)maxRankCommunicationTime/(float)bgClock));
 	}
 
 	//printBoard();
@@ -632,8 +633,10 @@ void * updateUniverse(void *s) {
 			unsigned long long startCommCycles, endCommCycles;
 			if (TIME == 0) startCommCycles = GetTimeBase();
 			communicateBetweenRanks(currDay);
-			if (TIME == 0) endCommCycles = GetTimeBase();
-			rankCommunicationTime += ((endCommCycles - startCommCycles)/bgClock)
+			if (TIME == 0){ 
+				endCommCycles = GetTimeBase();
+				rankCommunicationTime += (endCommCycles - startCommCycles);
+			}
 
 			//printf("rank[%d] thread[%d] numMiceInRank[%d] after iteration[%d]\n", myRank, *t->myTID, mouseList->count, currDay);
 			if(currDay == larvaSpawnDay) // if its day zero and thread zero, break out the larva
