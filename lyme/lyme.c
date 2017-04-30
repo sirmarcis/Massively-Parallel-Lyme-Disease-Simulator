@@ -20,11 +20,15 @@
 #include <structs.h>
 #include <mouse_list.h>
 #include <nest_list.h>
+//#include<hwi/include/bqc/A2_inlines.h>
+
 
 
 /***************************************************************************/
 /* Defines *****************************************************************/
 /***************************************************************************/
+
+#define TIME 0
 
 /***************************************************************************/
 /* Thread Structs **********************************************************/
@@ -84,13 +88,8 @@ pthread_mutex_t nestListArrCountMutex, mouseListArrCountMutex, newMouseListArrCo
 
 int mouseUID_cntr = 0;
 int maxFeedableMicePerNest;
-
-//Variables to check that the simulation is working
-int totMice;
-int totMiceEndingInNest;
-int droppedOffTicks = 0;
-int pickedUpTicks = 0;
-int stillCarrying = 0;
+double rankCommunicationTime = 0;
+int bgClock = 1600000000;
 
 
 /***************************************************************************/
@@ -175,10 +174,14 @@ int main(int argc, char* argv[])
 // Sync back all ranks
 	MPI_Barrier( MPI_COMM_WORLD );
 
+	double maxRankCommunicationTime = 0;
+	MPI_Allreduce(&rankCommunicationTime, &maxRankCommunicationTime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+
 // End timing
 	if (myRank == 0)  {
 		end = MPI_Wtime();
 		printf("Time taken: %lf s\n", end - start);
+		printf("Rank communication took: %lf s\n", maxRankCommunicationTime);
 	}
 
 	//printBoard();
@@ -209,11 +212,7 @@ int main(int argc, char* argv[])
 				//printf("rank[%d] pop_mouse_left 3\n", myRank);
 				while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
 					//printf("freeing mouse [%d] which lives in location [(%d,%d)] and should be in nest [(%d,%d)]\n", currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, currMouse->currentNest->i, currMouse->currentNest->j);
-					totMiceEndingInNest ++;
 					currMouse->currentNest = NULL;
-					if (currMouse->carrying) {
-						stillCarrying += carryNymph;
-					}
 					if(currMouse->nextHome_x != universe[i][j]->i || currMouse->nextHome_y != j)
 						printf("rank [%d]: freeing mouse [%d] which should be in location [(%d,%d)] but is in location [(%d,%d)]\n",
 							myRank, currMouse->mouseUID, currMouse->nextHome_x, currMouse->nextHome_y, universe[i][j]->i, j);
@@ -224,14 +223,6 @@ int main(int argc, char* argv[])
 			free(universe[i][j]);
 		}
 	}
-
-	// //Checking number of mice at the end
-	// printf("rank [%d]: total number of mice initialized is %d\n", myRank, totMice);
-	
-	// //Checking number of ticks at the end
-	// printf("picked up %d ticks in total\n", pickedUpTicks);
-	// printf("dropped off %d ticks in total\n", droppedOffTicks);
-	// printf("mice were still carrying %d in total\n", stillCarrying);
 
 	MPI_Barrier( MPI_COMM_WORLD );
 	MPI_Finalize();
@@ -312,13 +303,11 @@ void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay){
 		//printf("got bit by uninfected nymph\n");
 		currMouse->typeTickCarrying = 1;
 		currNest->uninfectedNymph -= carryNymph;
-		pickedUpTicks += carryNymph;
 	} else{ // then get bit by an infected nymph
 		//printf("got bit by infected nymph\n");
 		currMouse->typeTickCarrying = 2;
 		currNest->infectedNymph -= carryNymph;
 		currMouse->infected = 1;
-		pickedUpTicks += carryNymph;
 	}
 	//pthread_mutex_unlock(&(currNest->mutex));
 	currMouse->carrying = 1; // the mouse is now carrying ticks
@@ -397,14 +386,12 @@ void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay){
 			currNest->uninfectedNymph += carryLarva;
 	} else if(currMouse->typeTickCarrying == 1){ // mouse carrying uninfected nymphs
 		//printf("dropping off %d ticks\n", carryNymph);
-		droppedOffTicks += carryNymph;
 		if(currMouse->infected == 1){ // if the mouse is infected, drop off infected adults
 			currNest->infectedAdult += carryNymph;
 		} else
 			currNest->uninfectedAdult += carryNymph;
 	} else if(currMouse->typeTickCarrying == 2){ // mouse carrying infected nymphs
 		//printf("dropping off %d ticks\n", carryNymph);
-		droppedOffTicks += carryNymph;
 		currNest->infectedAdult += carryNymph; // then we always drop off infected adults
 	}
 	//mouse is no longer carrying ticks
@@ -640,7 +627,14 @@ void * updateUniverse(void *s) {
 			
 			mouseListArrCount = newMouseListArrCount;
 			newMouseListArrCount = 0;
+
+			//time rank communication
+			unsigned long long startCommCycles, endCommCycles;
+			if (TIME == 0) startCommCycles = GetTimeBase();
 			communicateBetweenRanks(currDay);
+			if (TIME == 0) endCommCycles = GetTimeBase();
+			rankCommunicationTime += ((endCommCycles - startCommCycles)/bgClock)
+
 			//printf("rank[%d] thread[%d] numMiceInRank[%d] after iteration[%d]\n", myRank, *t->myTID, mouseList->count, currDay);
 			if(currDay == larvaSpawnDay) // if its day zero and thread zero, break out the larva
 				addLarva();
@@ -756,7 +750,6 @@ void initMouse(int i, int j, int trueRow) {
 			int nIndex = nestListArrCount % pthreads;
 			nest_list_add_element(nestListArr[nIndex], n);
 			nestListArrCount++;
-			totMice += numMicePerNest;
 			//printf("should always be 0, [%d]\n", nest_list_contains_p(nestList, n));
 		}
 		else {
@@ -776,7 +769,6 @@ void initMouse(int i, int j, int trueRow) {
 			int nIndex = nestListArrCount % pthreads;
 			nest_list_add_element(nestListArr[nIndex], n);
 			nestListArrCount++;
-			totMice += numMicePerNest;
 		}
 		else {
 			n->numMice = 0;
