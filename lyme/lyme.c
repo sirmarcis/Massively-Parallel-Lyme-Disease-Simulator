@@ -82,7 +82,7 @@ nest_list ** nestListArr;
 mouse_list ** mouseListArr;
 mouse_list ** newMouseListArr;
 
-int nestListArrCount, mouseListArrCount, newMouseListArrCount;
+unsigned long long nestListArrCount, mouseListArrCount, newMouseListArrCount;
 pthread_mutex_t nestListArrCountMutex, mouseListArrCountMutex, newMouseListArrCountMutex;
 
 
@@ -181,6 +181,7 @@ int main(int argc, char* argv[])
 // End timing
 	if (myRank == 0)  {
 		end = MPI_Wtime();
+		printf("Config:\nUniverse Size: [%d, %d]\nRanks: [%d]\nThreads per Rank: [%d]\n", universeSize, universeSize, numRanks, pthreads);
 		printf("Time taken: %lf s\n", end - start);
 		printf("Rank communication took: %f s\n", ((float)maxRankCommunicationTime/(float)bgClock));
 	}
@@ -284,7 +285,7 @@ void readCommandLineArgs(int argc, char* argv[]){
 void computeTickBiteMouse(mouse* currMouse, nest* currNest, int currDay){ 
 	float mouse_gets_bit = GenVal(currMouse->nextHome_x);
 	int totTicks = currNest->larva + currNest->uninfectedNymph + currNest->infectedNymph;
-	if(mouse_gets_bit > biteThreshold || currMouse->carrying == 1 || totTicks == 0) // then the mouse get off scott free
+	if(mouse_gets_bit > biteThreshold || currMouse->carrying == 1 || totTicks == 0) // then the mouse gets off scott free
 		return; 
 
 	//printf("mouse threshold [%f] > percentage [%f]\n", biteThreshold, mouse_gets_bit);
@@ -395,7 +396,9 @@ void computeTickDropoffMouse(mouse* currMouse, nest* currNest, int currDay){
 		//printf("dropping off %d ticks\n", carryNymph);
 		currNest->infectedAdult += carryNymph; // then we always drop off infected adults
 	}
+	
 	//mouse is no longer carrying ticks
+	currMouse->typeTickCarrying = -1;
 	currMouse->carrying = 0;
 }
 
@@ -448,7 +451,7 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 		newMouse->mouseUID = commArr[i+11];
 
 		int x = newMouse->nextHome_x - rowLowerBound;
-		pthread_mutex_lock(&(universe[x][newMouse->nextHome_y]->mutex)); // lock the nest
+		//pthread_mutex_lock(&(universe[x][newMouse->nextHome_y]->mutex)); // lock the nest
 		mouse_list_add_element(universe[x][newMouse->nextHome_y]->miceInNest, newMouse); // add mouse to new nest
 		universe[x][newMouse->nextHome_y]->numMice++; // nestListArrCount
 		if (universe[x][newMouse->nextHome_y]->inANestList != 1) { // if the nest hasn't been added to any nest list, add it to the nest threads nest list
@@ -460,15 +463,15 @@ void addExternalMiceToRank(int* commArr, int commArrSize){
 			universe[x][newMouse->nextHome_y]->inANestList = 1;
 			 
 		}
-		pthread_mutex_unlock(&(universe[x][newMouse->nextHome_y]->mutex)); // safety
+		//pthread_mutex_unlock(&(universe[x][newMouse->nextHome_y]->mutex)); // safety
 		newMouse->currentNest = universe[x][newMouse->nextHome_y]; // set mouse to nest backpointer
 
-		pthread_mutex_lock(&mouseListArrCountMutex);
+		//pthread_mutex_lock(&mouseListArrCountMutex);
 		int mouseIndex = mouseListArrCount % pthreads;
 		mouseListArrCount++;
 
 		mouse_list_add_element(mouseListArr[mouseIndex], newMouse); // add the mouse to the ranks mouse list
-		pthread_mutex_unlock(&mouseListArrCountMutex);
+		//pthread_mutex_unlock(&mouseListArrCountMutex);
 	}
 }
 
@@ -691,7 +694,7 @@ void calcMouseDirection(mouse * m, int trueRow){
 	} else if(direction == 1){
 		m->direction_x = -1;
 		m->direction_y = 1;
-	} else if(direction == 2){
+	} else if(direction == 2){ // test this one
 		m->direction_x = 0;
 		m->direction_y = 1;
 	} else if(direction == 3){
@@ -703,7 +706,7 @@ void calcMouseDirection(mouse * m, int trueRow){
 	} else if(direction == 5){
 		m->direction_x = 1;
 		m->direction_y = -1;
-	} else if(direction == 6){
+	} else if(direction == 6){ // test this one 
 		m->direction_x = 0;
 		m->direction_y = -1;
 	} else{
@@ -791,7 +794,10 @@ void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd) {
 	universe[i][j]->j = j;
 	universe[i][j]->inANestList = 0;
 	if (trueRow % 4 == 0 && j >=bandStart && j < bandEnd) { // then there are ticks in this cell
-		if(trueRow % (universeSize/2) == 0 && trueRow != 0){ // then this tick nest has lyme disease
+		if((trueRow % (universeSize/2) == 0 && trueRow != 0) //||
+			//(j == universeSize/2 && trueRow >= bandStart && trueRow < bandEnd)
+			)
+		{ // then this tick nest has lyme disease
 			universe[i][j]->infectedNymph = uninfectedNymph/2;
 			universe[i][j]->uninfectedNymph = uninfectedNymph/2;
 			//printf("YAY infected ticks i[%d] j[%d]\n", trueRow,j);
@@ -800,6 +806,10 @@ void initTicks(int i, int j, int trueRow, int bandStart, int bandEnd) {
 		}
 	} else
 		universe[i][j]->uninfectedNymph = 0;
+	if((j == universeSize/2 && trueRow >= bandStart && trueRow < bandEnd) && j >=bandStart && j < bandEnd){
+		universe[i][j]->infectedNymph = uninfectedNymph/2;
+		universe[i][j]->uninfectedNymph = uninfectedNymph/2;
+	}
 }
 
 /* Initializes all global lists needed */
@@ -867,9 +877,22 @@ void printBoard() {
         	int total = universe[i][j]->larva + universe[i][j]->uninfectedNymph + universe[i][j]->infectedNymph
         	+ universe[i][j]->uninfectedAdult + universe[i][j]->infectedAdult;
         	//int micePerCell = universe[i][j]->miceInNest->count;
-        	// int infected = universe[i][j]->infectedNymph + universe[i][j]->infectedAdult;
+        	//int infected = universe[i][j]->infectedNymph + universe[i][j]->infectedAdult;
+        	int infectedMice = 0;
+        	if(universe[i][j]->miceInNest->count > 0){
+        		mouse_list * tempMouseList = mouse_list_create();
+        		mouse* currMouse;
+        		while((currMouse = pop_mouse_left(universe[i][j]->miceInNest)) != NULL){
+        			if(currMouse->infected)
+        				infectedMice++;
+        			mouse_list_add_element(tempMouseList, currMouse);
+        		}
+        		mouse_list_free(universe[i][j]->miceInNest);
+        		universe[i][j]->miceInNest = NULL;
+        		universe[i][j]->miceInNest = tempMouseList;
+        	}
         	// float infectionRate = (float)(infected)/(float)(total);
-         	fprintf(f, "%d ", total);
+         	fprintf(f, "%d ", infectedMice);
         }
         fprintf(f, "\n");
     }
