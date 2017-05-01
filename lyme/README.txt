@@ -14,6 +14,7 @@ To Compile on Kratos:
 To Run on Kratos:
 --> mpirun --np [# MPI ranks] ./lyme --universeSize [size of the entire universe] --pthreads [number of threads per rank]
 
+
 To Compile on AMOS BlueGene/Q:
 --> module load xl
 --> make -f Makefile_bgq
