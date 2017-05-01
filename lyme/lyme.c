@@ -608,7 +608,7 @@ void initSingleMouse(mouse_list * miceInNest, nest *n, int trueRow, int j){
 	mouse_list_add_element(miceInNest, m);
 	int mIndex = mouseListArrCount % pthreads;
 	mouse_list_add_element(mouseListArr[mIndex], m);
-	m->mouseUID = myRank * 10000 + mouseUID_cntr;
+	m->mouseUID = mouseUID_cntr;
 	mouseUID_cntr++;
 	mouseListArrCount++;
 	m->mustMove = 1; // mark all mice to move initally
