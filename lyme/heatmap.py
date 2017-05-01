@@ -33,6 +33,6 @@ for i in range(numfiles):
 temp = 0
 for key, value in universe.items():
     data = np.array(universe[key])
-    imshow(data, cmap=get_cmap("flag"), interpolation='nearest')
-    savefig(datalocation + '/' + str(temp) + '.png')
+    imshow(data, cmap=get_cmap("hot"), interpolation='nearest')
+    savefig(datalocation + '/' + str(temp) + '.pgf')
     temp += 1

@@ -2,6 +2,7 @@
 #define _STRUCTSH_
 
 #include <pthread.h>
+
 struct nestInfo;
 struct mouseInfo;
 struct deerInfo;
@@ -11,7 +12,6 @@ struct nestListInfo;
 
 typedef struct nestInfo nest;
 typedef struct mouseInfo mouse;
-typedef struct deerInfo deer;
 typedef struct threadInfo thread;
 typedef struct mouseListInfo mouse_list;
 typedef struct nestListInfo nest_list;
@@ -28,7 +28,6 @@ struct nestInfo {
 	int numMice;				 // count for number of mice in cell
 	int numDeer;				 // count for number of deer in cell
 	mouse_list * miceInNest;	 // array of mice in nest
-	deer * deerInNest;			 // array of deer in nest
 	pthread_mutex_t mutex;		 // mutex for the nest
 	int i;						 // x and y location of the cell based on total board
 	int j;
@@ -52,15 +51,9 @@ struct mouseInfo {
 	int mouseUID; 				// unique ID of a mouse within universe
 };
 
-struct deerInfo {
-	int infected;
-	int carrying;
-};
-
 struct threadInfo {				//struct defining the information for each thread
 	int * myTID;				//given thread id
 };
-
 
 /* Mouse list struct */
 struct mouseListInfo {
@@ -91,7 +84,5 @@ struct nestNode {
 	nestNode * next;
 	nest * val;
 };
-
-
 
 #endif

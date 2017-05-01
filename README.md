@@ -1,7 +1,6 @@
-# PPFinalProject
-SIMULATING LYME DISEASE USING PARALLEL DISCRETE EVENT SIMULATION
+# Parallel Simulation of Lyme Disease Spread Amongst Mice
 
-A massively parallel disease modeler for Blue Gene /Q using ROSS
+A massively parallel disease modeler for Blue Gene /Q
 
 
 For our project, we will be simulating Lyme Disease using ROSS. ROSS will provide us with GVT instrumentation to keep track of global time throughout the simulation. It will also provide us with the event tracing capabilities. These capabilities will allow for each event to be kept track of so that computation can be executed at designated times within the simulation. The goal of this project is to build upon the existing work of Deelman and Szymanski, whose paper is linked below. In their model, they considered the spread of Lyme Disease through ticks and the movement of mice; we would like to also add deer to the model and create events tailored to the spread of Lyme Disease through deer.  In addition, we would like to see how this addition of deer will change our results in comparison to the results shared in the paper.
