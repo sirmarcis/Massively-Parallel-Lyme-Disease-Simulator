@@ -29,6 +29,7 @@
 /***************************************************************************/
 
 #define TIME 0 // should be 0, 1 on local machines
+#define PRINT_UNI 1 // set to 0 to print universe, set to 1 otherwise
 
 /***************************************************************************/
 /* Thread Structs **********************************************************/
@@ -181,8 +182,7 @@ int main(int argc, char* argv[]){
 		printf("Time taken: %lf s\n", end - start);
 		printf("Rank communication took: %f s\n", ((float)maxRankCommunicationTime/(float)bgClock));
 	}
-
-	printBoard();
+	if(PRINT_UNI == 0) printBoard();
 
 	// Frees
 	for(int i =0; i < pthreads; i++){
@@ -530,8 +530,8 @@ void * updateUniverse(void *s) {
 			}
 			if(currDay == larvaSpawnDay) // if its day zero and thread zero, break out the larva
 				addLarva();
-			if(currDay == 10) printBoard();
-			if(currDay == 90) printBoard();
+			if(currDay == 10 && PRINT_UNI == 0) printBoard();
+			if(currDay == 90 && PRINT_UNI == 0) printBoard();
 		}
 		pthread_barrier_wait(&barrier);
 	}
